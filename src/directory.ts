@@ -20,7 +20,14 @@ export const ORG_KINDS = ['institution', 'enterprise', 'partner', 'sponsor', 'pl
 export const OrgKindSchema = z.enum(ORG_KINDS);
 export type OrgKind = z.infer<typeof OrgKindSchema>;
 
-export const OrgStatusSchema = z.enum(['active', 'suspended']);
+/** pending: signed up, waiting for platform approval (set-up allowed, not live). */
+export const OrgStatusSchema = z.enum(['pending', 'active', 'suspended']);
+
+/** Slugs that are hostnames or routes of the platform itself, never organisation subdomains. */
+export const RESERVED_SLUGS = [
+  'www', 'api', 'app', 'admin', 'platform', 'static', 'cdn', 'mail', 'email', 'docs', 'status', 'help', 'support',
+  'auth', 'login', 'signup', 'staging', 'dev', 'test', 'assets', 'media', 'blog', 'traefik', 'rabbitmq', 'grafana',
+] as const;
 
 export const OrganizationSchema = z.object({
   id: UuidSchema,
@@ -37,9 +44,10 @@ export const OrganizationSchema = z.object({
 export type Organization = z.infer<typeof OrganizationSchema>;
 
 export const PublicOrganizationSchema = OrganizationSchema.pick({ id: true, slug: true, name: true, kinds: true, branding: true, terminology: true });
+export const MemberOrganizationSchema = PublicOrganizationSchema.extend({ status: OrgStatusSchema });
 
 export const CreateOrganizationSchema = z.object({
-  slug: SlugSchema,
+  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved'),
   name: z.string().trim().min(2).max(160),
   kinds: z.array(OrgKindSchema.exclude(['platform'])).min(1),
   parentOrgId: UuidSchema.optional(),
@@ -48,6 +56,21 @@ export const CreateOrganizationSchema = z.object({
   dataRegion: z.string().min(2).max(16).default('ng'),
   /** Optional first admin: an existing user is made org_admin, otherwise an invitation is sent. */
   firstAdmin: z.object({ email: EmailSchema.optional(), phone: PhoneSchema.optional() }).optional(),
+});
+
+/** Self-service sign-up. The caller becomes the organisation's first admin. */
+export const SignUpOrganizationSchema = z.object({
+  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved'),
+  name: z.string().trim().min(2).max(160),
+  /** enterprise goes live at once; institution, partner and sponsor wait for approval. */
+  kind: OrgKindSchema.exclude(['platform']),
+  dataRegion: z.string().min(2).max(16).default('ng'),
+  profile: z
+    .object({
+      industry: z.string().max(80).optional(),
+      sizeBand: z.enum(['1-10', '11-50', '51-200', '201-1000', '1000+']).optional(),
+    })
+    .default({}),
 });
 
 export const UpdateOrganizationSchema = z
@@ -212,7 +235,7 @@ export const MeSchema = z.object({
     z.object({
       membershipId: UuidSchema,
       status: MembershipStatusSchema,
-      org: PublicOrganizationSchema,
+      org: MemberOrganizationSchema,
       roles: z.array(RoleAssignmentSchema),
     }),
   ),
@@ -242,10 +265,17 @@ export const organizationsContract = c.router({
     responses: { 201: OrganizationSchema, 409: ErrorResponseSchema, ...errors },
     summary: 'Create an organisation (platform admin)',
   },
+  signUp: {
+    method: 'POST',
+    path: '/orgs/signup',
+    body: SignUpOrganizationSchema,
+    responses: { 201: OrganizationSchema, 409: ErrorResponseSchema, 429: ErrorResponseSchema, ...errors },
+    summary: 'Sign up an organisation as the signed-in user, who becomes its admin. Enterprises are live at once; others await approval.',
+  },
   list: {
     method: 'GET',
     path: '/orgs',
-    query: PageQuerySchema.extend({ q: z.string().max(120).optional(), kind: OrgKindSchema.optional() }),
+    query: PageQuerySchema.extend({ q: z.string().max(120).optional(), kind: OrgKindSchema.optional(), status: OrgStatusSchema.optional() }),
     responses: { 200: pageOf(OrganizationSchema), ...errors },
     summary: 'List organisations (platform admin)',
   },
