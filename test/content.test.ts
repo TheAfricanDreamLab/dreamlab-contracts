@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BlockAuthoringSchema, BlockSchema, CourseAuthoringSchema, ItemContentSchema, PERMISSIONS } from '../src';
+import { BlockAuthoringSchema, BlockSchema, CourseAuthoringSchema, ItemContentSchema, PERMISSIONS, toDeliveryBlock } from '../src';
 
 const choice = {
   id: 'pick-one',
@@ -61,6 +61,36 @@ describe('content', () => {
       cover: { from: '#0A3D29', to: '#1F7A55', symbol: '◆' },
     });
     expect(course.modules).toBeUndefined();
+  });
+
+  it('shuffles order blocks for delivery, stably per seed, never in the correct order', () => {
+    const order = BlockAuthoringSchema.parse({
+      id: 'steps',
+      type: 'order',
+      prompt: 'Put the steps in order',
+      items: [{ id: 'define', text: 'Define' }, { id: 'diagnose', text: 'Diagnose' }, { id: 'generate', text: 'Generate' }],
+      explanation: 'Define first.',
+    });
+    const a = toDeliveryBlock(order, 'enrolment-1');
+    expect(a).toEqual(toDeliveryBlock(order, 'enrolment-1'));
+    expect(a.type === 'order' && a.items.map((i) => i.id)).not.toEqual(['define', 'diagnose', 'generate']);
+    expect(JSON.stringify(a)).not.toContain('explanation');
+  });
+
+  it('splits match pairs for delivery and shuffles the right side', () => {
+    const match = BlockAuthoringSchema.parse({
+      id: 'terms',
+      type: 'match',
+      prompt: 'Match',
+      pairs: [{ id: 'a', left: 'Symptom', right: 'What you see' }, { id: 'b', left: 'Cause', right: 'Why it happens' }],
+      explanation: 'x',
+    });
+    const d = toDeliveryBlock(match, 'seed');
+    expect(d.type).toBe('match');
+    if (d.type !== 'match') return;
+    expect(d.left.map((l) => l.id)).toEqual(['a', 'b']);
+    expect(d.right.map((r) => r.id)).toEqual(['b', 'a']);
+    expect(BlockSchema.parse(d)).toEqual(d);
   });
 
   it('adds the platform admin permissions', () => {

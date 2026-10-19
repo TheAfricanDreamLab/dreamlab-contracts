@@ -326,3 +326,76 @@ export const CourseAuthoringSchema = z.object({
   modules: z.array(ModuleAuthoringSchema).max(20).optional(),
 });
 export type CourseAuthoring = z.infer<typeof CourseAuthoringSchema>;
+
+// ---------- Authoring → delivery ----------
+
+/** Deterministic PRNG from a string, so a learner sees the same shuffle every time they open an item. */
+function seededRandom(seed: string): () => number {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+/** Shuffled copy that never equals the original order (when there are at least two elements). */
+function shuffled<T extends { id: string }>(xs: readonly T[], seed: string): T[] {
+  const random = seededRandom(seed);
+  const a = [...xs];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  if (a.length > 1 && a.every((x, i) => x.id === xs[i]!.id)) a.push(a.shift()!);
+  return a;
+}
+
+/**
+ * The one way to turn authored content into what a learner receives: answers, feedback and
+ * outcomes removed, `order` items shuffled, `match` pairs split with the right side shuffled.
+ * `seed` (e.g. enrolment id) keeps the shuffle stable for one learner.
+ */
+export function toDeliveryBlock(block: BlockAuthoring, seed: string): Block {
+  switch (block.type) {
+    case 'order':
+      return { id: block.id, type: 'order', prompt: block.prompt, items: shuffled(block.items, `${seed}:${block.id}`) };
+    case 'match':
+      return {
+        id: block.id,
+        type: 'match',
+        prompt: block.prompt,
+        left: block.pairs.map((p) => ({ id: p.id, text: p.left })),
+        right: shuffled(block.pairs.map((p) => ({ id: p.id, text: p.right })), `${seed}:${block.id}`),
+      };
+    default:
+      return BlockSchema.parse(block);
+  }
+}
+
+export function toDeliveryContent(item: ItemAuthoring, seed: string): ItemContent {
+  switch (item.type) {
+    case 'lesson':
+      return {
+        type: 'lesson',
+        steps: item.payload.steps.map((s) => ({ id: s.id, title: s.title, blocks: s.blocks.map((b) => toDeliveryBlock(b, seed)) })),
+      };
+    case 'quiz':
+      return {
+        type: 'quiz',
+        intro: item.payload.intro,
+        passPct: item.payload.passPct,
+        maxAttempts: item.payload.maxAttempts,
+        questions: item.payload.questions.map((q) => QuizQuestionSchema.parse(toDeliveryBlock(q, seed))),
+      };
+    case 'assignment':
+      return { type: 'assignment', ...item.payload };
+    case 'discussion':
+      return { type: 'discussion', ...item.payload };
+  }
+}
