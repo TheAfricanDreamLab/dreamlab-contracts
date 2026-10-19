@@ -18,6 +18,10 @@ export const PERMISSIONS = [
   'org.roles.revoke',
   'org.units.manage',
   'org.groups.manage',
+  /** Email domains, single sign-on, SCIM provisioning and security policy (IAM-14..17, IAM-19). */
+  'org.security.manage',
+  /** Create, change and delete the organisation's own custom roles (IAM-18). */
+  'org.roles.manage',
   'org.reports.read',
   'learning.assign',
   'course.content.edit',
@@ -142,6 +146,19 @@ export const SYSTEM_ROLES = [
 export type SystemRoleKey = (typeof SYSTEM_ROLES)[number]['key'];
 export const SYSTEM_ROLE_KEYS = SYSTEM_ROLES.map((r) => r.key) as [SystemRoleKey, ...SystemRoleKey[]];
 export const RoleKeySchema = z.string().min(2).max(64).regex(/^[a-z][a-z0-9_]*$/);
+
+export const isSystemRoleKey = (key: string): boolean => (SYSTEM_ROLE_KEYS as readonly string[]).includes(key);
+
+/**
+ * Permissions that change who can do what, or the organisation itself. Where an organisation
+ * requires multi-factor authentication for admins, these need a session that passed MFA.
+ */
+export const MFA_PROTECTED_PERMISSIONS: readonly Permission[] = PERMISSIONS.filter(
+  (p) => p.startsWith('platform.') || (p.startsWith('org.') && !['org.read', 'org.members.read', 'org.reports.read'].includes(p)),
+);
+
+/** Permissions an organisation may put in its own custom roles: never platform-wide ones. */
+export const CUSTOM_ROLE_PERMISSIONS: readonly Permission[] = PERMISSIONS.filter((p) => !p.startsWith('platform.'));
 
 /** Permissions a role grants, or an empty list for an unknown role. */
 export function permissionsForRole(roleKey: string): readonly Permission[] {
