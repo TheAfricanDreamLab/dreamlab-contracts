@@ -2,6 +2,7 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import {
+  CourseAuthoringSchema,
   CourseLevelSchema,
   CourseVisibilitySchema,
   CoverSchema,
@@ -175,6 +176,13 @@ export const UpdateAdminCourseSchema = z
   .object({ listed: z.boolean().optional(), featured: z.boolean().optional() })
   .refine((v) => v.listed !== undefined || v.featured !== undefined, 'Change listed or featured');
 
+export const ImportResultSchema = z.object({
+  slug: z.string(),
+  /** A new version was published (false when the content was unchanged). */
+  published: z.boolean(),
+  versionNo: z.number().int().nullable(),
+});
+
 const CatalogQuery = z.object({
   q: z.string().trim().max(80).optional(),
   program: z.string().max(80).optional(),
@@ -223,6 +231,20 @@ export const catalogContract = c.router(
       body: UpdateAdminCourseSchema,
       responses: { 200: AdminCourseSchema, ...errors },
       summary: 'List, hide or feature a course in the catalog (platform admin)',
+    },
+    adminImportCourse: {
+      method: 'POST',
+      path: '/catalog/admin/courses/import',
+      body: CourseAuthoringSchema,
+      responses: { 200: ImportResultSchema, ...errors },
+      summary: 'Create or update a course from an authored course file; changed content is published as a new version (platform admin)',
+    },
+    adminImportProgram: {
+      method: 'POST',
+      path: '/catalog/admin/programs/import',
+      body: ProgramAuthoringSchema,
+      responses: { 200: z.object({ slug: z.string() }), ...errors },
+      summary: 'Create or update a programme from an authored programme file; its courses must exist (platform admin)',
     },
   },
   { strictStatusCodes: true },
