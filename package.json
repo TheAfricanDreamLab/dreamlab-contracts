@@ -1,6 +1,6 @@
 {
   "name": "@dreamlab/contracts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Zod + ts-rest contracts shared by the Dream Lab OS API and clients",
   "license": "Apache-2.0",
   "author": "African Dream Network",
