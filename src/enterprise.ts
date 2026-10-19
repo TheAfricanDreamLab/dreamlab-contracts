@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { SsoProtocolSchema } from './auth';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import { PublicOrganizationSchema, RoleSchema } from './directory';
-import { PermissionSchema, RoleKeySchema, ScopeTypeSchema } from './permissions';
+import { CUSTOM_ROLE_PERMISSIONS, isSystemRoleKey, PermissionSchema, RoleKeySchema, ScopeTypeSchema } from './permissions';
 
 const c = initContract();
 
@@ -81,6 +81,12 @@ export const SsoConnectionSchema = z.object({
 export const SsoSettingsSchema = z.object({ connection: SsoConnectionSchema.nullable(), serviceProvider: ServiceProviderSchema });
 
 const HttpsUrlSchema = z.string().trim().url().max(2048);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+/** OpenID Connect issuers are https. Plain http only for a local test identity provider. */
+const OidcIssuerSchema = HttpsUrlSchema.refine((v) => {
+  const u = new URL(v);
+  return u.protocol === 'https:' || (u.protocol === 'http:' && LOCAL_HOSTS.has(u.hostname));
+}, 'The issuer must be an https URL');
 const PemCertificateSchema = z
   .string()
   .trim()
@@ -91,7 +97,7 @@ const PemCertificateSchema = z
 export const SaveSsoConnectionSchema = z.discriminatedUnion('protocol', [
   z.object({
     protocol: z.literal('oidc'),
-    issuer: HttpsUrlSchema,
+    issuer: OidcIssuerSchema,
     clientId: z.string().trim().min(1).max(512),
     /** Required when creating; leave out to keep the stored secret. */
     clientSecret: z.string().min(1).max(2048).optional(),
@@ -127,20 +133,24 @@ export const ScimTokenSchema = z.object({ baseUrl: z.string().url(), token: z.st
 
 // ---------- Custom roles (IAM-18) ----------
 
+/** Any permission except platform-wide ones. */
+const CustomRolePermissionSchema = PermissionSchema.refine((p) => CUSTOM_ROLE_PERMISSIONS.includes(p), 'Custom roles cannot include platform permissions');
+const CustomRoleKeySchema = RoleKeySchema.refine((k) => !isSystemRoleKey(k), 'That key belongs to a built-in role');
+
 export const CreateCustomRoleSchema = z.object({
   /** Generated from the name when left out. Cannot be a built-in role's key. */
-  key: RoleKeySchema.optional(),
+  key: CustomRoleKeySchema.optional(),
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().max(400).default(''),
   scopeTypes: z.array(ScopeTypeSchema).min(1).default(['org']),
-  permissions: z.array(PermissionSchema).min(1).max(40),
+  permissions: z.array(CustomRolePermissionSchema).min(1).max(40),
 });
 export const UpdateCustomRoleSchema = z
   .object({
     name: z.string().trim().min(2).max(80),
     description: z.string().trim().max(400),
     scopeTypes: z.array(ScopeTypeSchema).min(1),
-    permissions: z.array(PermissionSchema).min(1).max(40),
+    permissions: z.array(CustomRolePermissionSchema).min(1).max(40),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Nothing to update');

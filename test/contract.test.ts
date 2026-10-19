@@ -118,4 +118,20 @@ describe('enterprise identity', () => {
     expect(admin.permissions).toContain('org.security.manage');
     expect(admin.permissions).toContain('org.roles.manage');
   });
+
+  it('only accepts https OIDC issuers, except a local test identity provider', async () => {
+    const { SaveSsoConnectionSchema } = await import('../src');
+    const oidc = (issuer: string) => SaveSsoConnectionSchema.safeParse({ protocol: 'oidc', issuer, clientId: 'c' }).success;
+    expect(oidc('https://login.microsoftonline.com/t/v2.0')).toBe(true);
+    expect(oidc('http://idp.example.com')).toBe(false);
+    expect(oidc('http://127.0.0.1:4455')).toBe(true);
+  });
+
+  it('refuses platform permissions and built-in keys in custom roles', async () => {
+    const { CreateCustomRoleSchema, UpdateCustomRoleSchema } = await import('../src');
+    expect(CreateCustomRoleSchema.safeParse({ name: 'Lead', permissions: ['org.read'] }).success).toBe(true);
+    expect(CreateCustomRoleSchema.safeParse({ name: 'Root', permissions: ['platform.orgs.manage'] }).success).toBe(false);
+    expect(CreateCustomRoleSchema.safeParse({ key: 'org_admin', name: 'Admin', permissions: ['org.read'] }).success).toBe(false);
+    expect(UpdateCustomRoleSchema.safeParse({ permissions: ['platform.orgs.read'] }).success).toBe(false);
+  });
 });
