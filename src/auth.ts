@@ -216,7 +216,7 @@ export const authContract = c.router({
     method: 'POST',
     path: '/auth/verify',
     body: VerifyRequestSchema,
-    responses: { 200: TokenResponseSchema, ...authErrors },
+    responses: { 200: SignInResponseSchema, ...authErrors },
     summary: 'Verify an email or phone with a one-time code, and sign in',
   },
   login: {
