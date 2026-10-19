@@ -171,6 +171,18 @@ export const CreateInvitationSchema = z
 
 export const AcceptInvitationSchema = z.object({ token: z.string().min(20).max(256) });
 
+/** What an invitee sees before signing in. Public: the token itself is the secret. */
+export const InvitationPreviewSchema = z.object({
+  organization: z.object({ name: z.string(), slug: SlugSchema, kinds: z.array(OrgKindSchema), status: z.lazy(() => OrgStatusSchema) }),
+  roles: z.array(z.object({ key: RoleKeySchema, name: z.string(), permissions: z.array(PermissionSchema) })),
+  invitedBy: z.string().nullable(),
+  channel: z.enum(['email', 'sms']),
+  /** Masked: a***@mail.com or +234******678. */
+  destination: z.string(),
+  status: InvitationStatusSchema,
+  expiresAt: TimestampSchema,
+});
+
 export const RoleSchema = z.object({
   key: RoleKeySchema,
   name: z.string(),
@@ -381,6 +393,14 @@ export const invitationsContract = c.router({
     body: c.noBody(),
     responses: { 204: c.noBody(), ...errors },
     summary: 'Revoke a pending invitation',
+  },
+  preview: {
+    // POST so the secret token travels in the body, never in URLs, history, logs or referrers.
+    method: 'POST',
+    path: '/invitations/preview',
+    body: AcceptInvitationSchema,
+    responses: { 200: InvitationPreviewSchema, 404: ErrorResponseSchema },
+    summary: 'Show an invitation before accepting it. No authentication: the token (sent in the body) is the secret.',
   },
   accept: {
     method: 'POST',
