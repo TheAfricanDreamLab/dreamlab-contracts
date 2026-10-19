@@ -395,11 +395,12 @@ export const invitationsContract = c.router({
     summary: 'Revoke a pending invitation',
   },
   preview: {
-    method: 'GET',
+    // POST so the secret token travels in the body, never in URLs, history, logs or referrers.
+    method: 'POST',
     path: '/invitations/preview',
-    query: AcceptInvitationSchema,
+    body: AcceptInvitationSchema,
     responses: { 200: InvitationPreviewSchema, 404: ErrorResponseSchema },
-    summary: 'Show an invitation before accepting it. No authentication: the token is the secret.',
+    summary: 'Show an invitation before accepting it. No authentication: the token (sent in the body) is the secret.',
   },
   accept: {
     method: 'POST',
