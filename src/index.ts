@@ -4,4 +4,4 @@ export * from './auth';
 export * from './directory';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.3.1';
+export const CONTRACTS_VERSION = '0.4.0';
