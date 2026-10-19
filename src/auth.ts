@@ -37,6 +37,14 @@ export const RegisterRequestSchema = z
   });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 
+/** Google ID token from Google Identity Services (web) or the Google Sign-In SDK (mobile). */
+export const GoogleSignInRequestSchema = z.object({
+  idToken: z.string().min(20).max(4096),
+  /** Required the first time, when the sign-in creates the account. */
+  consent: ConsentSchema.optional(),
+  locale: z.string().min(2).max(16).optional(),
+});
+
 export const OtpChannelSchema = z.enum(['email', 'sms']);
 
 export const VerificationSentSchema = z.object({
@@ -134,6 +142,13 @@ export const authContract = c.router({
     body: LoginRequestSchema,
     responses: { 200: TokenResponseSchema, 403: ErrorResponseSchema, ...authErrors },
     summary: 'Sign in with password',
+  },
+  google: {
+    method: 'POST',
+    path: '/auth/google',
+    body: GoogleSignInRequestSchema,
+    responses: { 200: TokenResponseSchema, 403: ErrorResponseSchema, 503: ErrorResponseSchema, ...authErrors },
+    summary: 'Sign in or sign up with Google. A new account needs consent and no organisation.',
   },
   loginWithOtp: {
     method: 'POST',
