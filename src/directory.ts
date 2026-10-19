@@ -47,7 +47,8 @@ export const PublicOrganizationSchema = OrganizationSchema.pick({ id: true, slug
 export const MemberOrganizationSchema = PublicOrganizationSchema.extend({ status: OrgStatusSchema });
 
 export const CreateOrganizationSchema = z.object({
-  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved'),
+  /** Subdomain (<slug>.theafricandreamlab.com). Omit it to have one generated from the name. */
+  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved').optional(),
   name: z.string().trim().min(2).max(160),
   kinds: z.array(OrgKindSchema.exclude(['platform'])).min(1),
   parentOrgId: UuidSchema.optional(),
@@ -60,7 +61,8 @@ export const CreateOrganizationSchema = z.object({
 
 /** Self-service sign-up. The caller becomes the organisation's first admin. */
 export const SignUpOrganizationSchema = z.object({
-  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved'),
+  /** Subdomain (<slug>.theafricandreamlab.com). Omit it to have one generated from the name. */
+  slug: SlugSchema.refine((s) => !(RESERVED_SLUGS as readonly string[]).includes(s), 'That name is reserved').optional(),
   name: z.string().trim().min(2).max(160),
   /** enterprise goes live at once; institution, partner and sponsor wait for approval. */
   kind: OrgKindSchema.exclude(['platform']),
