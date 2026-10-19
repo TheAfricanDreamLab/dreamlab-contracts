@@ -1,6 +1,6 @@
 {
   "name": "@dreamlab/contracts",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Zod + ts-rest contracts shared by the Dream Lab OS API and clients",
   "license": "Apache-2.0",
   "author": "African Dream Network",
@@ -11,10 +11,10 @@
   "type": "commonjs",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
@@ -29,8 +29,8 @@
   },
   "packageManager": "pnpm@10.33.2",
   "scripts": {
-    "build": "tsup",
-    "prepare": "tsup",
+    "build": "tsup && tsc -p tsconfig.build.json",
+    "prepare": "tsup && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
