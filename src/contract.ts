@@ -9,7 +9,10 @@ import {
   rolesContract,
   structureContract,
 } from './directory';
+import { catalogContract } from './catalog';
 import { enterpriseContract } from './enterprise';
+import { learningContract } from './learning';
+import { platformContract } from './platform';
 
 const c = initContract();
 
@@ -40,6 +43,9 @@ export const apiV1Contract = c.router(
     roles: rolesContract,
     structure: structureContract,
     enterprise: enterpriseContract,
+    platform: platformContract,
+    catalog: catalogContract,
+    learning: learningContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

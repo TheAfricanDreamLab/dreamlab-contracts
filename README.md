@@ -12,6 +12,11 @@ This package is the seam between `dreamlab-api`, `dreamlab-web`, `dreamlab-mobil
 | `permissions` | The permission catalog, scope types and the system roles that bundle permissions |
 | `auth` | Registration, OTP, login, refresh, logout, password reset / change, org switching, sessions, JWKS, access-token claims |
 | `directory` | Me, organisations, members, invitations, roles, org units and groups |
+| `enterprise` | Email domains, single sign-on connections, SCIM, custom roles, security policy |
+| `content` | Course content: lesson steps and blocks, interactive checks, quizzes, assignments, discussions — an authoring form with answers and a delivery form without |
+| `catalog` | Course and programme catalog, syllabus outlines, catalog administration |
+| `learning` | Enrolments, the course player, progress, checks, quiz attempts, assignment submissions, discussions, journal, learning stats |
+| `platform` | Platform administration: overview, people search, suspend / reactivate |
 | `index` | `apiV1Contract` (served under `/v1`), `contract` (everything the gateway serves) |
 
 ## Using it
