@@ -1,0 +1,60 @@
+{
+  "name": "@dreamlab/contracts",
+  "version": "0.1.0",
+  "description": "Zod + ts-rest contracts shared by the Dream Lab OS API and clients",
+  "license": "Apache-2.0",
+  "author": "African Dream Network",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheAfricanDreamLab/dreamlab-contracts.git"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "build": "tsup",
+    "prepare": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "license-check": "license-checker-rseidelsohn --production --onlyAllow \"Apache-2.0;MIT;BSD-2-Clause;BSD-3-Clause;ISC;Unicode-3.0;Zlib\" --excludePackages \"@dreamlab/contracts\""
+  },
+  "peerDependencies": {
+    "@ts-rest/core": "^3.52.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@ts-rest/core": "3.52.1",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "license-checker-rseidelsohn": "4.4.2",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "3.2.7",
+    "zod": "3.25.76"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
