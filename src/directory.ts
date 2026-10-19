@@ -89,7 +89,8 @@ const OrgParams = z.object({ orgId: UuidSchema });
 
 // ---------- Members, roles, invitations ----------
 
-export const MembershipStatusSchema = z.enum(['invited', 'active', 'suspended', 'left']);
+/** requested: asked to join through a verified email domain; an admin approves. */
+export const MembershipStatusSchema = z.enum(['invited', 'requested', 'active', 'suspended', 'left']);
 export const MembershipSourceSchema = z.enum(['invite', 'self', 'domain', 'scim', 'import', 'bootstrap']);
 
 export const RoleAssignmentSchema = z.object({

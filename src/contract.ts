@@ -9,6 +9,7 @@ import {
   rolesContract,
   structureContract,
 } from './directory';
+import { enterpriseContract } from './enterprise';
 
 const c = initContract();
 
@@ -38,6 +39,7 @@ export const apiV1Contract = c.router(
     invitations: invitationsContract,
     roles: rolesContract,
     structure: structureContract,
+    enterprise: enterpriseContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

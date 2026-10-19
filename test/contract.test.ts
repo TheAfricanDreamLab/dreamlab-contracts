@@ -77,3 +77,61 @@ describe('permissions', () => {
     }
   });
 });
+
+describe('enterprise identity', () => {
+  it('tells an MFA challenge from tokens', async () => {
+    const { isMfaChallenge, SignInResponseSchema } = await import('../src');
+    const challenge = SignInResponseSchema.parse({ mfaRequired: true, mfaToken: 'x'.repeat(30), expiresIn: 300, methods: ['totp'] });
+    expect(isMfaChallenge(challenge)).toBe(true);
+  });
+
+  it('accepts authenticator and recovery codes only', async () => {
+    const { MfaCodeSchema } = await import('../src');
+    expect(MfaCodeSchema.safeParse('123456').success).toBe(true);
+    expect(MfaCodeSchema.safeParse('ab3de-9xk2p').success).toBe(true);
+    expect(MfaCodeSchema.safeParse('12345').success).toBe(false);
+  });
+
+  it('only returns to paths inside the app', async () => {
+    const { ReturnPathSchema } = await import('../src');
+    expect(ReturnPathSchema.safeParse('/app?x=1').success).toBe(true);
+    for (const bad of ['//evil.com', 'https://evil.com', '/\\evil.com', 'app']) expect(ReturnPathSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('normalises domains and rejects non-domains', async () => {
+    const { DomainNameSchema } = await import('../src');
+    expect(DomainNameSchema.parse(' Acme.COM ')).toBe('acme.com');
+    for (const bad of ['localhost', 'acme', 'http://acme.com', 'a..com']) expect(DomainNameSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it('keeps platform permissions out of custom roles and protects admin permissions', async () => {
+    const { CUSTOM_ROLE_PERMISSIONS, MFA_PROTECTED_PERMISSIONS, isSystemRoleKey } = await import('../src');
+    expect(CUSTOM_ROLE_PERMISSIONS.some((p) => p.startsWith('platform.'))).toBe(false);
+    expect(MFA_PROTECTED_PERMISSIONS).toContain('org.security.manage');
+    expect(MFA_PROTECTED_PERMISSIONS).not.toContain('org.read');
+    expect(isSystemRoleKey('org_admin')).toBe(true);
+    expect(isSystemRoleKey('regional_lead')).toBe(false);
+  });
+
+  it('gives org admins the new permissions', () => {
+    const admin = SYSTEM_ROLES.find((r) => r.key === 'org_admin')!;
+    expect(admin.permissions).toContain('org.security.manage');
+    expect(admin.permissions).toContain('org.roles.manage');
+  });
+
+  it('only accepts https OIDC issuers, except a local test identity provider', async () => {
+    const { SaveSsoConnectionSchema } = await import('../src');
+    const oidc = (issuer: string) => SaveSsoConnectionSchema.safeParse({ protocol: 'oidc', issuer, clientId: 'c' }).success;
+    expect(oidc('https://login.microsoftonline.com/t/v2.0')).toBe(true);
+    expect(oidc('http://idp.example.com')).toBe(false);
+    expect(oidc('http://127.0.0.1:4455')).toBe(true);
+  });
+
+  it('refuses platform permissions and built-in keys in custom roles', async () => {
+    const { CreateCustomRoleSchema, UpdateCustomRoleSchema } = await import('../src');
+    expect(CreateCustomRoleSchema.safeParse({ name: 'Lead', permissions: ['org.read'] }).success).toBe(true);
+    expect(CreateCustomRoleSchema.safeParse({ name: 'Root', permissions: ['platform.orgs.manage'] }).success).toBe(false);
+    expect(CreateCustomRoleSchema.safeParse({ key: 'org_admin', name: 'Admin', permissions: ['org.read'] }).success).toBe(false);
+    expect(UpdateCustomRoleSchema.safeParse({ permissions: ['platform.orgs.read'] }).success).toBe(false);
+  });
+});
