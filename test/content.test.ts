@@ -93,6 +93,15 @@ describe('content', () => {
     expect(BlockSchema.parse(d)).toEqual(d);
   });
 
+  it('accepts YouTube videos and images from the allowed hosts only', () => {
+    expect(BlockAuthoringSchema.parse({ id: 'intro', type: 'video', provider: 'youtube', videoId: 'dQw4w9WgXcQ', title: 'Intro', channel: 'A channel' })).toMatchObject({ type: 'video' });
+    expect(BlockSchema.safeParse({ id: 'v', type: 'video', provider: 'youtube', videoId: 'bad', title: 't', channel: 'c' }).success).toBe(false);
+    const image = { id: 'market', type: 'image', alt: 'A market in Kano', credit: 'Photo: Unsplash' };
+    expect(BlockSchema.safeParse({ ...image, url: 'https://images.unsplash.com/photo-1?w=1200' }).success).toBe(true);
+    expect(BlockSchema.safeParse({ ...image, url: 'https://evil.example.com/x.jpg' }).success).toBe(false);
+    expect(BlockSchema.safeParse({ ...image, url: 'http://images.unsplash.com/photo-1' }).success).toBe(false);
+  });
+
   it('adds the platform admin permissions', () => {
     expect(PERMISSIONS).toEqual(expect.arrayContaining(['platform.users.read', 'platform.users.manage', 'platform.catalog.manage']));
   });

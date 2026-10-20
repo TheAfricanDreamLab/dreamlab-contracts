@@ -45,7 +45,59 @@ const FrameworkBlock = z.object({
   steps: z.array(z.object({ label: z.string().max(60), detail: z.string().max(400) })).min(2).max(10),
 });
 
-const teachingBlocks = [TextBlock, CalloutBlock, QuoteBlock, ExampleBlock, KeyTermsBlock, RevealBlock, FrameworkBlock] as const;
+// ---------- Media ----------
+
+/**
+ * Hosts images may come from. Clients allow exactly these in their content security policy, so an
+ * author cannot make learners' browsers load from anywhere else.
+ */
+export const MEDIA_IMAGE_HOSTS = ['images.unsplash.com', 'upload.wikimedia.org', 'i.ytimg.com'] as const;
+
+export const MediaImageUrlSchema = z
+  .string()
+  .url()
+  .max(600)
+  .refine((u) => {
+    try {
+      const url = new URL(u);
+      return url.protocol === 'https:' && (MEDIA_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }, `Images must be https and hosted on ${MEDIA_IMAGE_HOSTS.join(', ')}`);
+
+export const YouTubeIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/, 'An 11-character YouTube video id');
+
+/** A video learners watch in place. YouTube for now; played from youtube-nocookie.com only when tapped. */
+export const VideoRefSchema = z.object({
+  provider: z.literal('youtube'),
+  videoId: YouTubeIdSchema,
+  title: z.string().min(1).max(200),
+  /** Who made it: shown as the credit. */
+  channel: z.string().min(1).max(120),
+  durationS: z.number().int().min(1).max(36_000).optional(),
+  startS: z.number().int().min(0).optional(),
+  endS: z.number().int().min(1).optional(),
+});
+export type VideoRef = z.infer<typeof VideoRefSchema>;
+
+const VideoBlock = VideoRefSchema.extend({
+  id: BlockIdSchema,
+  type: z.literal('video'),
+  /** What to watch for. */
+  caption: z.string().max(600).optional(),
+});
+const ImageBlock = z.object({
+  id: BlockIdSchema,
+  type: z.literal('image'),
+  url: MediaImageUrlSchema,
+  alt: z.string().min(3).max(300),
+  caption: z.string().max(600).optional(),
+  /** Photographer and source, e.g. "Photo: Jane Doe / Unsplash". */
+  credit: z.string().min(1).max(200),
+});
+
+const teachingBlocks = [TextBlock, CalloutBlock, QuoteBlock, ExampleBlock, KeyTermsBlock, RevealBlock, FrameworkBlock, VideoBlock, ImageBlock] as const;
 
 // ---------- Interactive blocks: authoring form ----------
 
@@ -296,6 +348,10 @@ export const CoverSchema = z.object({
   from: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   to: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   symbol: z.string().max(4),
+  /** Optional photo shown over the colours. */
+  imageUrl: MediaImageUrlSchema.optional(),
+  imageAlt: z.string().max(300).optional(),
+  imageCredit: z.string().max(200).optional(),
 });
 
 export const InstructorSchema = z.object({ name: z.string().max(120), title: z.string().max(160), bio: z.string().max(800) });
@@ -322,6 +378,8 @@ export const CourseAuthoringSchema = z.object({
   /** The named Practical Output of the course (Dream Lab: Knowledge → Skill → Application → Artifact → Evidence). */
   practicalOutput: z.string().max(160).nullable(),
   cover: CoverSchema,
+  /** A short introduction to the course, shown on its page and course home. */
+  trailer: VideoRefSchema.optional(),
   instructors: z.array(InstructorSchema).max(6).default([]),
   modules: z.array(ModuleAuthoringSchema).max(20).optional(),
 });
