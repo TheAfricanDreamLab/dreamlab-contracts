@@ -8,6 +8,7 @@ import {
   CoverSchema,
   InstructorSchema,
   ItemTypeSchema,
+  VideoRefSchema,
 } from './content';
 
 const c = initContract();
@@ -65,6 +66,8 @@ export const CourseDetailSchema = CourseSummarySchema.extend({
   audience: z.string(),
   prerequisites: z.string(),
   instructors: z.array(InstructorSchema),
+  /** Older responses may omit it. */
+  trailer: VideoRefSchema.nullable().default(null),
   /** The published version learners enrol in; null while coming soon. */
   versionId: UuidSchema.nullable(),
   versionNo: z.number().int().nullable(),
