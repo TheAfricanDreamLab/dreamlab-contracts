@@ -352,6 +352,11 @@ export const CoverSchema = z.object({
   imageUrl: MediaImageUrlSchema.optional(),
   imageAlt: z.string().max(300).optional(),
   imageCredit: z.string().max(200).optional(),
+}).superRefine((c, ctx) => {
+  if (!c.imageUrl) return;
+  // A photo needs words for people who can't see it, and its maker's credit.
+  if (!c.imageAlt?.trim()) ctx.addIssue({ code: 'custom', path: ['imageAlt'], message: 'Describe the cover photo' });
+  if (!c.imageCredit?.trim()) ctx.addIssue({ code: 'custom', path: ['imageCredit'], message: 'Credit the cover photo' });
 });
 
 export const InstructorSchema = z.object({ name: z.string().max(120), title: z.string().max(160), bio: z.string().max(800) });

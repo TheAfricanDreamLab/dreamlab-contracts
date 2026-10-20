@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BlockAuthoringSchema, BlockSchema, CourseAuthoringSchema, ItemContentSchema, PERMISSIONS, toDeliveryBlock } from '../src';
+import { BlockAuthoringSchema, CoverSchema, BlockSchema, CourseAuthoringSchema, ItemContentSchema, PERMISSIONS, toDeliveryBlock } from '../src';
 
 const choice = {
   id: 'pick-one',
@@ -100,6 +100,13 @@ describe('content', () => {
     expect(BlockSchema.safeParse({ ...image, url: 'https://images.unsplash.com/photo-1?w=1200' }).success).toBe(true);
     expect(BlockSchema.safeParse({ ...image, url: 'https://evil.example.com/x.jpg' }).success).toBe(false);
     expect(BlockSchema.safeParse({ ...image, url: 'http://images.unsplash.com/photo-1' }).success).toBe(false);
+  });
+
+  it('needs alt text and a credit for a cover photo', () => {
+    const cover = { from: '#0A3D29', to: '#1F9D6B', symbol: '◆', imageUrl: 'https://images.unsplash.com/photo-1?w=1200' };
+    expect(CoverSchema.safeParse(cover).success).toBe(false);
+    expect(CoverSchema.safeParse({ ...cover, imageAlt: 'A busy market', imageCredit: 'Photo: Unsplash' }).success).toBe(true);
+    expect(CoverSchema.safeParse({ from: '#0A3D29', to: '#1F9D6B', symbol: '◆' }).success).toBe(true);
   });
 
   it('adds the platform admin permissions', () => {
