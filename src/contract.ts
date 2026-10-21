@@ -10,6 +10,7 @@ import {
   structureContract,
 } from './directory';
 import { catalogContract } from './catalog';
+import { cohortsContract } from './cohorts';
 import { enterpriseContract } from './enterprise';
 import { learningContract } from './learning';
 import { platformContract } from './platform';
@@ -46,6 +47,7 @@ export const apiV1Contract = c.router(
     platform: platformContract,
     catalog: catalogContract,
     learning: learningContract,
+    cohorts: cohortsContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

@@ -16,6 +16,7 @@ This package is the seam between `dreamlab-api`, `dreamlab-web`, `dreamlab-mobil
 | `content` | Course content: lesson steps and blocks, interactive checks, quizzes, assignments, discussions — an authoring form with answers and a delivery form without |
 | `catalog` | Course and programme catalog, syllabus outlines, catalog administration |
 | `learning` | Enrolments, the course player, progress, checks, quiz attempts, assignment submissions, discussions, journal, learning stats |
+| `cohorts` | Cohorts of a programme: dated calendar, class sessions on a weekly rhythm, joining, electives, attendance, my programme |
 | `platform` | Platform administration: overview, people search, suspend / reactivate |
 | `index` | `apiV1Contract` (served under `/v1`), `contract` (everything the gateway serves) |
 

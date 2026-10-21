@@ -27,6 +27,7 @@ export const PERMISSIONS = [
   'org.roles.manage',
   'org.reports.read',
   'learning.assign',
+  'cohort.manage',
   'course.content.edit',
   'course.publish',
   'course.analytics.read',
@@ -50,7 +51,7 @@ export interface SystemRole {
   permissions: readonly Permission[];
 }
 
-const ORG_ADMIN_PERMISSIONS = PERMISSIONS.filter((p) => p.startsWith('org.') || p === 'learning.assign');
+const ORG_ADMIN_PERMISSIONS = PERMISSIONS.filter((p) => p.startsWith('org.') || p === 'learning.assign' || p === 'cohort.manage');
 
 export const SYSTEM_ROLES = [
   {
