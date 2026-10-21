@@ -182,6 +182,13 @@ export const InvitationPreviewSchema = z.object({
   destination: z.string(),
   status: InvitationStatusSchema,
   expiresAt: TimestampSchema,
+  /** An account already exists for the invited email or phone: offer sign-in, not sign-up. */
+  accountExists: z.boolean().optional(),
+  /**
+   * When someone is signed in: whether this invitation is for them (their verified email or phone).
+   * False means they must sign out and continue as the invited person. Null when signed out.
+   */
+  matchesSignedInUser: z.boolean().nullable().optional(),
 });
 
 export const RoleSchema = z.object({

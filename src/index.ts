@@ -9,4 +9,4 @@ export * from './learning';
 export * from './platform';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.8.0';
+export const CONTRACTS_VERSION = '0.9.0';
