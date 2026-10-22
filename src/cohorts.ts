@@ -19,7 +19,14 @@ const errors = {
  * dated from the start; its class sessions follow a weekly rhythm; attendance is recorded per session.
  */
 
-export const DateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'A date like 2026-11-03');
+/** A real calendar date: 2026-02-30 has the right shape but is rejected. */
+export const DateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'A date like 2026-11-03')
+  .refine((v) => {
+    const t = Date.parse(`${v}T00:00:00Z`);
+    return !Number.isNaN(t) && new Date(t).toISOString().startsWith(v);
+  }, 'Not a date on the calendar');
 export const TimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'A time like 21:00');
 
 export const COHORT_STATUSES = ['draft', 'open', 'running', 'closed'] as const;
@@ -183,7 +190,11 @@ export const AttendanceEntrySchema = z.object({
   minutes: z.number().int().nullable(),
 });
 export const MarkAttendanceSchema = z.object({
-  entries: z.array(z.object({ userId: UuidSchema, status: AttendanceStatusSchema, minutes: z.number().int().min(0).max(600).nullable().default(null) })).min(1).max(1000),
+  entries: z
+    .array(z.object({ userId: UuidSchema, status: AttendanceStatusSchema, minutes: z.number().int().min(0).max(600).nullable().default(null) }))
+    .min(1)
+    .max(1000)
+    .refine((entries) => new Set(entries.map((e) => e.userId)).size === entries.length, 'Mark each learner once'),
 });
 
 const CohortParams = z.object({ cohortId: UuidSchema });

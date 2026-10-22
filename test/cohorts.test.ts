@@ -21,6 +21,12 @@ describe('cohorts', () => {
     expect(RhythmSlotSchema.safeParse({ weekday: 8, time: '21:00', durationMin: 90, mode: 'virtual', title: 'X class' }).success).toBe(false);
     expect(RhythmSlotSchema.safeParse({ weekday: 2, time: '25:00', durationMin: 90, mode: 'virtual', title: 'X class' }).success).toBe(false);
     expect(MarkAttendanceSchema.safeParse({ entries: [] }).success).toBe(false);
+    const id = '01a1629e-68f9-749b-94ab-b8696f06c163';
+    expect(MarkAttendanceSchema.safeParse({ entries: [{ userId: id, status: 'present' }, { userId: id, status: 'absent' }] }).success).toBe(false);
+    expect(MarkAttendanceSchema.safeParse({ entries: [{ userId: id, status: 'present' }] }).success).toBe(true);
+    expect(CreateCohortSchema.safeParse({ programSlug: 'the-african-dream-lab', name: 'Cohort 05', startsOn: '2026-02-30' }).success).toBe(false);
+    expect(CreateCohortSchema.safeParse({ programSlug: 'the-african-dream-lab', name: 'Cohort 05', startsOn: '2026-13-01' }).success).toBe(false);
+    expect(CreateCohortSchema.safeParse({ programSlug: 'the-african-dream-lab', name: 'Cohort 05', startsOn: '2028-02-29' }).success).toBe(true);
   });
 
   it('lets organisation admins manage cohorts', () => {
