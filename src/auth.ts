@@ -54,6 +54,9 @@ export const VerificationSentSchema = z.object({
   expiresInSeconds: z.number().int(),
 });
 
+/** Issued by register, returned by verify: the same bounds on both sides. */
+export const RegistrationTokenSchema = z.string().min(20).max(256);
+
 export const RegisterResponseSchema = z.object({
   userId: UuidSchema,
   verification: VerificationSentSchema,
@@ -62,7 +65,7 @@ export const RegisterResponseSchema = z.object({
    * kept only when verify presents this token; a code alone (someone else's registration reaching
    * your inbox) verifies the address but sets no password.
    */
-  registrationToken: z.string(),
+  registrationToken: RegistrationTokenSchema,
 });
 
 export const OtpPurposeSchema = z.enum(['verify', 'login', 'reset']);
@@ -77,7 +80,7 @@ export const OtpRequestSchema = z.object({
 /** Always the same shape, whether or not the identifier exists, to prevent account enumeration. */
 export const OtpAcceptedSchema = z.object({ accepted: z.literal(true), expiresInSeconds: z.number().int() });
 
-export const VerifyRequestSchema = z.object({ identifier: IdentifierSchema, code: OtpCodeSchema, registrationToken: z.string().min(20).max(256).optional() });
+export const VerifyRequestSchema = z.object({ identifier: IdentifierSchema, code: OtpCodeSchema, registrationToken: RegistrationTokenSchema.optional() });
 export const LoginRequestSchema = z.object({ identifier: IdentifierSchema, password: z.string().min(1).max(128) });
 export const OtpLoginRequestSchema = z.object({ identifier: IdentifierSchema, code: OtpCodeSchema });
 export const RefreshRequestSchema = z.object({ refreshToken: z.string().min(20).max(512) });
