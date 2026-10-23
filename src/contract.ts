@@ -9,6 +9,7 @@ import {
   rolesContract,
   structureContract,
 } from './directory';
+import { authoringContract } from './authoring';
 import { catalogContract } from './catalog';
 import { cohortsContract } from './cohorts';
 import { enterpriseContract } from './enterprise';
@@ -50,6 +51,7 @@ export const apiV1Contract = c.router(
     learning: learningContract,
     cohorts: cohortsContract,
     grading: gradingContract,
+    authoring: authoringContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

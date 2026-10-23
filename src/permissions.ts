@@ -51,7 +51,10 @@ export interface SystemRole {
   permissions: readonly Permission[];
 }
 
-const ORG_ADMIN_PERMISSIONS = PERMISSIONS.filter((p) => p.startsWith('org.') || p === 'learning.assign' || p === 'cohort.manage');
+/** Org admins run the organisation, its cohorts and its own courses (authoring and publishing them, CAT-3). */
+const ORG_ADMIN_PERMISSIONS = PERMISSIONS.filter(
+  (p) => p.startsWith('org.') || p === 'learning.assign' || p === 'cohort.manage' || p === 'course.content.edit' || p === 'course.publish',
+);
 
 export const SYSTEM_ROLES = [
   {
