@@ -8,7 +8,8 @@ export * from './catalog';
 export * from './learning';
 export * from './cohorts';
 export * from './grading';
+export * from './authoring';
 export * from './platform';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.11.0';
+export const CONTRACTS_VERSION = '0.12.0';
