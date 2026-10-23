@@ -12,6 +12,7 @@ import {
 import { catalogContract } from './catalog';
 import { cohortsContract } from './cohorts';
 import { enterpriseContract } from './enterprise';
+import { gradingContract } from './grading';
 import { learningContract } from './learning';
 import { platformContract } from './platform';
 
@@ -48,6 +49,7 @@ export const apiV1Contract = c.router(
     catalog: catalogContract,
     learning: learningContract,
     cohorts: cohortsContract,
+    grading: gradingContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

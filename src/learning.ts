@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CourseDetailSchema, CourseSlugSchema, CourseSummarySchema } from './catalog';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import { BlockIdSchema, BlockResponseSchema, BlockResultSchema, ItemContentSchema, ItemTypeSchema } from './content';
+import { ReleasedGradeSchema } from './grading';
 
 const c = initContract();
 
@@ -36,6 +37,11 @@ export const EnrollmentSchema = z.object({
   enrolledAt: TimestampSchema,
   lastActiveAt: TimestampSchema,
   completedAt: TimestampSchema.nullable(),
+  /**
+   * The course's final score (0–100) from its weighted quizzes and assignments; null until every
+   * weighted item has a score (assignments count once faculty release their grade).
+   */
+  finalScore: z.number().nullable(),
 });
 export type Enrollment = z.infer<typeof EnrollmentSchema>;
 
@@ -86,6 +92,8 @@ export const AssignmentSubmissionSchema = z.object({
   /** Rubric criterion id → the learner says they met it. */
   selfAssessment: z.record(BlockIdSchema, z.boolean()),
   submittedAt: TimestampSchema,
+  /** Faculty's grade, once released. */
+  grade: ReleasedGradeSchema.nullable(),
 });
 export type AssignmentSubmission = z.infer<typeof AssignmentSubmissionSchema>;
 
