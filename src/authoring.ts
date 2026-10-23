@@ -108,6 +108,8 @@ export const SaveDraftSchema = z
   .strict();
 
 export const ReviewNoteSchema = z.object({ note: z.string().trim().max(2000).nullable().default(null) }).strict();
+/** Asking for changes always says what to change. */
+export const RequestChangesSchema = z.object({ note: z.string().trim().min(1).max(2000) }).strict();
 
 const DraftParams = z.object({ draftId: UuidSchema });
 
@@ -161,7 +163,7 @@ export const authoringContract = c.router(
       method: 'POST',
       path: '/catalog/authoring/drafts/:draftId/request-changes',
       pathParams: DraftParams,
-      body: ReviewNoteSchema,
+      body: RequestChangesSchema,
       responses: { 200: DraftSchema, ...errors },
       summary: 'Return a draft to its authors with a note (reviewer)',
     },
@@ -177,7 +179,7 @@ export const authoringContract = c.router(
       method: 'DELETE',
       path: '/catalog/authoring/drafts/:draftId',
       pathParams: DraftParams,
-      responses: { 204: z.null(), ...errors },
+      responses: { 204: c.noBody(), ...errors },
       summary: 'Discard a draft that is not in review',
     },
   },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiV1Contract, CreateDraftSchema, draftIssues, permissionsForRole, SaveDraftSchema } from '../src';
+import { apiV1Contract, CreateDraftSchema, draftIssues, permissionsForRole, RequestChangesSchema, SaveDraftSchema } from '../src';
 
 const lesson = { key: 'welcome', type: 'lesson', title: 'Welcome', minutes: 5, payload: { steps: [{ id: 'hello', blocks: [{ id: 'intro', type: 'text', body: 'Hello.' }] }] } };
 const course = {
@@ -29,6 +29,8 @@ describe('authoring', () => {
   it('saves any object with the revision it was based on', () => {
     expect(SaveDraftSchema.safeParse({ revision: 3, doc: { title: 'Half done' } }).success).toBe(true);
     expect(SaveDraftSchema.safeParse({ revision: -1, doc: {} }).success).toBe(false);
+    expect(RequestChangesSchema.safeParse({ note: '  ' }).success).toBe(false);
+    expect(RequestChangesSchema.safeParse({ note: 'Add a safety step.' }).success).toBe(true);
   });
 
   it('lists what stops a document being published, with readable paths', () => {
