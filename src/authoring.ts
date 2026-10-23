@@ -90,10 +90,14 @@ export const AuthoringOverviewSchema = z.object({
 export type AuthoringOverview = z.infer<typeof AuthoringOverviewSchema>;
 
 /** Start from an existing course (its current version), or a new course with a slug and title. */
-export const CreateDraftSchema = z.union([
-  z.object({ courseSlug: CourseSlugSchema }).strict(),
-  z.object({ slug: CourseAuthoringSchema.shape.slug, title: z.string().trim().min(3).max(160) }).strict(),
-]);
+export const CreateDraftSchema = z
+  .object({
+    courseSlug: CourseSlugSchema.optional(),
+    slug: CourseAuthoringSchema.shape.slug.optional(),
+    title: z.string().trim().min(3).max(160).optional(),
+  })
+  .strict()
+  .refine((v) => (v.courseSlug ? !v.slug && !v.title : !!v.slug && !!v.title), 'Give either courseSlug, or a slug and title for a new course');
 
 /** A save: the whole document and the revision it was based on. Up to 1 MB of JSON. */
 export const SaveDraftSchema = z
