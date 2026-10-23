@@ -1,6 +1,6 @@
 {
   "name": "@dreamlab/contracts",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Zod + ts-rest contracts shared by the Dream Lab OS API and clients",
   "license": "Apache-2.0",
   "author": "African Dream Network",
@@ -25,7 +25,7 @@
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.23.4"
   },
   "packageManager": "pnpm@10.33.2",
   "scripts": {
