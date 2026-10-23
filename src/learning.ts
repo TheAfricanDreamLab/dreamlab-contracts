@@ -41,7 +41,7 @@ export const EnrollmentSchema = z.object({
    * The course's final score (0–100) from its weighted quizzes and assignments; null until every
    * weighted item has a score (assignments count once faculty release their grade).
    */
-  finalScore: z.number().nullable(),
+  finalScore: z.number().min(0).max(100).nullable(),
 });
 export type Enrollment = z.infer<typeof EnrollmentSchema>;
 

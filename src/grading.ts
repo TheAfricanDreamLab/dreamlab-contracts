@@ -111,8 +111,8 @@ export type SubmissionForGrading = z.infer<typeof SubmissionForGradingSchema>;
 
 export const GradeRequestSchema = z
   .object({
-    /** Every rubric criterion, scored. */
-    rubricScores: z.record(BlockIdSchema, RubricLevelSchema),
+    /** Every rubric criterion, scored (the API checks the set against the assignment's rubric). */
+    rubricScores: z.record(BlockIdSchema, RubricLevelSchema).refine((r) => Object.keys(r).length > 0, 'Score every rubric criterion'),
     feedback: z.string().trim().max(4000).nullable().default(null),
     /** true: the learner sees it now and it counts; false: save as a draft. */
     release: z.boolean(),

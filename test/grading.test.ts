@@ -43,3 +43,12 @@ describe('assignment links', () => {
     expect(AssignmentSubmitRequestSchema.safeParse({ ...base, link: 'data:text/html,hi' }).success).toBe(false);
   });
 });
+
+describe('score bounds', () => {
+  it('refuses empty rubrics and impossible scores', async () => {
+    const { GradeRequestSchema, EnrollmentSchema } = await import('../src');
+    expect(GradeRequestSchema.safeParse({ rubricScores: {}, release: true }).success).toBe(false);
+    expect(EnrollmentSchema.shape.finalScore.safeParse(120).success).toBe(false);
+    expect(EnrollmentSchema.shape.finalScore.safeParse(84.5).success).toBe(true);
+  });
+});

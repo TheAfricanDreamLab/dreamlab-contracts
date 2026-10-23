@@ -167,14 +167,14 @@ export const MyProgramSchema = z.object({
       progressPct: z.number().int(),
       creditHours: z.number(),
       /** The course's final score, once every weighted quiz and assignment has one. */
-      score: z.number().nullable(),
+      score: z.number().min(0).max(100).nullable(),
     }),
   ),
   /**
    * The Programme Score so far: course final scores weighted by credit hours, over the courses that
    * have one. Recomputed on every read, so it always explains itself.
    */
-  score: z.object({ programmeScore: z.number().nullable(), scoredCredits: z.number(), totalCredits: z.number() }),
+  score: z.object({ programmeScore: z.number().min(0).max(100).nullable(), scoredCredits: z.number().min(0), totalCredits: z.number().min(0) }),
   electives: z.array(ElectiveChoiceSchema),
   attendance: z.object({ attended: z.number().int(), held: z.number().int() }),
 });
@@ -190,7 +190,7 @@ export const RosterEntrySchema = z.object({
   attendancePct: z.number().int().nullable(),
   progressPct: z.number().int(),
   /** Programme Score so far (see MyProgramSchema.score); null until a course has a final score. */
-  programmeScore: z.number().nullable(),
+  programmeScore: z.number().min(0).max(100).nullable(),
 });
 
 export const AttendanceEntrySchema = z.object({
