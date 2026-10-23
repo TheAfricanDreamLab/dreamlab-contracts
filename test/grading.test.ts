@@ -33,3 +33,13 @@ describe('grading', () => {
     ]);
   });
 });
+
+describe('assignment links', () => {
+  it('takes web links only, since graders open them', async () => {
+    const { AssignmentSubmitRequestSchema } = await import('../src');
+    const base = { text: 'my work' };
+    expect(AssignmentSubmitRequestSchema.safeParse({ ...base, link: 'https://docs.example.org/canvas' }).success).toBe(true);
+    expect(AssignmentSubmitRequestSchema.safeParse({ ...base, link: 'javascript:alert(1)' }).success).toBe(false);
+    expect(AssignmentSubmitRequestSchema.safeParse({ ...base, link: 'data:text/html,hi' }).success).toBe(false);
+  });
+});

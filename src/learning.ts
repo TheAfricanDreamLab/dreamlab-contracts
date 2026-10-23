@@ -145,7 +145,8 @@ export const CheckRequestSchema = z.object({ blockId: BlockIdSchema, response: B
 export const QuizSubmitRequestSchema = z.object({ answers: z.record(BlockIdSchema, BlockResponseSchema) });
 export const AssignmentSubmitRequestSchema = z.object({
   text: z.string().trim().min(1).max(30_000),
-  link: z.string().trim().url().max(500).nullable().default(null),
+  /** Only web links: graders open it, so javascript: or data: URLs are refused. */
+  link: z.string().trim().url().max(500).regex(/^https?:\/\//i, 'A link starting with https://').nullable().default(null),
   selfAssessment: z.record(BlockIdSchema, z.boolean()).default({}),
 });
 export const DiscussionPostRequestSchema = z.object({
