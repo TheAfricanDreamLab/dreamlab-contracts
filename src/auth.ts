@@ -185,6 +185,8 @@ export const SamlAcceptedSchema = z.object({ state: z.string() });
 export const SsoFinishRequestSchema = z.object({ state: z.string().min(20).max(256) });
 export const SsoResultSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('session'), tokens: TokenResponseSchema, returnTo: z.string().nullable() }),
+  /** The person has their own authenticator: sign-on vouches for the address, the app still asks for a code. */
+  z.object({ kind: z.literal('mfa'), challenge: MfaChallengeSchema, returnTo: z.string().nullable() }),
   z.object({ kind: z.literal('test'), orgId: UuidSchema, email: z.string(), name: z.string().nullable() }),
 ]);
 export type SsoResult = z.infer<typeof SsoResultSchema>;
