@@ -38,7 +38,8 @@ const FileName = z
   .trim()
   .min(1)
   .max(160)
-  .refine((n) => !/[\\/\u0000-\u001f]/.test(n), 'A file name without slashes');
+  // No slashes, and no control characters (code points below 32).
+  .refine((n) => !/[\\/]/.test(n) && ![...n].some((ch) => ch.charCodeAt(0) < 32), 'A file name without slashes');
 
 export const CourseMediaUploadRequestSchema = z
   .object({
