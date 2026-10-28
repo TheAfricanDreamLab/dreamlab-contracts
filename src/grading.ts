@@ -2,6 +2,7 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import { BlockIdSchema, RubricCriterionSchema } from './content';
+import { SubmissionFileSchema } from './media';
 
 const c = initContract();
 
@@ -87,6 +88,7 @@ export const SubmissionForGradingSchema = z.object({
   status: GradingStatusSchema,
   text: z.string(),
   link: z.string().nullable(),
+  files: z.array(SubmissionFileSchema),
   /** Rubric criterion id → the learner says they met it. */
   selfAssessment: z.record(BlockIdSchema, z.boolean()),
   learner: Learner,

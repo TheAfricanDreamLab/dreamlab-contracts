@@ -4,6 +4,7 @@ import { CourseDetailSchema, CourseSlugSchema, CourseSummarySchema } from './cat
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import { BlockIdSchema, BlockResponseSchema, BlockResultSchema, ItemContentSchema, ItemTypeSchema } from './content';
 import { ReleasedGradeSchema } from './grading';
+import { FileLinkSchema, MAX_SUBMISSION_FILES, SubmissionFileSchema, SubmissionFileUploadRequestSchema, SubmissionFileUploadSchema } from './media';
 
 const c = initContract();
 
@@ -89,6 +90,7 @@ export const AssignmentSubmissionSchema = z.object({
   version: z.number().int(),
   text: z.string(),
   link: z.string().nullable(),
+  files: z.array(SubmissionFileSchema),
   /** Rubric criterion id → the learner says they met it. */
   selfAssessment: z.record(BlockIdSchema, z.boolean()),
   submittedAt: TimestampSchema,
@@ -147,6 +149,8 @@ export const AssignmentSubmitRequestSchema = z.object({
   text: z.string().trim().min(1).max(30_000),
   /** Only web links: graders open it, so javascript: or data: URLs are refused. */
   link: z.string().trim().url().max(500).regex(/^https?:\/\//i, 'A link starting with https://').nullable().default(null),
+  /** Files uploaded for this assignment (uploadFile), attached in this order. */
+  fileIds: z.array(UuidSchema).max(MAX_SUBMISSION_FILES).default([]),
   selfAssessment: z.record(BlockIdSchema, z.boolean()).default({}),
 });
 export const DiscussionPostRequestSchema = z.object({
@@ -235,6 +239,21 @@ export const learningContract = c.router(
       body: QuizSubmitRequestSchema,
       responses: { 201: QuizAttemptSchema, ...errors },
       summary: 'Submit a quiz attempt; graded at once',
+    },
+    uploadFile: {
+      method: 'POST',
+      path: '/learning/enrollments/:enrollmentId/items/:itemId/files',
+      pathParams: ItemParams,
+      body: SubmissionFileUploadRequestSchema,
+      responses: { 201: SubmissionFileUploadSchema, ...errors },
+      summary: 'Get an upload URL for a file to attach to an assignment submission (PUT the file there, then submit with its id)',
+    },
+    fileLink: {
+      method: 'GET',
+      path: '/learning/files/:fileId',
+      pathParams: z.object({ fileId: UuidSchema }),
+      responses: { 200: FileLinkSchema, ...errors },
+      summary: 'A short-lived link to an attached file (its owner, or faculty who may grade it)',
     },
     submitAssignment: {
       method: 'POST',
