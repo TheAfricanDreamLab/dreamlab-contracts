@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MEDIA_PATH_PATTERN, MediaPathSchema } from './media';
 
 /*
  * Course content (ERD v0.1 §5): Course → Version → Module → Item. Lessons are short steps of
@@ -55,23 +56,26 @@ export const MEDIA_IMAGE_HOSTS = ['images.unsplash.com', 'upload.wikimedia.org',
 
 export const MediaImageUrlSchema = z
   .string()
-  .url()
   .max(600)
   .refine((u) => {
+    if (u.startsWith('/media/')) return MEDIA_PATH_PATTERN.test(u.slice('/media/'.length));
     try {
       const url = new URL(u);
       return url.protocol === 'https:' && (MEDIA_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
     } catch {
       return false;
     }
-  }, `Images must be https and hosted on ${MEDIA_IMAGE_HOSTS.join(', ')}`);
+  }, `Images must be uploaded, or https and hosted on ${MEDIA_IMAGE_HOSTS.join(', ')}`);
 
 export const YouTubeIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/, 'An 11-character YouTube video id');
 
-/** A video learners watch in place. YouTube for now; played from youtube-nocookie.com only when tapped. */
+/**
+ * A video learners watch in place: on YouTube (played from youtube-nocookie.com only when tapped), or
+ * an uploaded file, whose `videoId` is its media path. `videoProblem` checks the two agree.
+ */
 export const VideoRefSchema = z.object({
-  provider: z.literal('youtube'),
-  videoId: YouTubeIdSchema,
+  provider: z.enum(['youtube', 'file']),
+  videoId: z.union([YouTubeIdSchema, MediaPathSchema]),
   title: z.string().min(1).max(200),
   /** Who made it: shown as the credit. */
   channel: z.string().min(1).max(120),
@@ -80,6 +84,12 @@ export const VideoRefSchema = z.object({
   endS: z.number().int().min(1).optional(),
 });
 export type VideoRef = z.infer<typeof VideoRefSchema>;
+
+/** Why a video reference is unusable, or null. */
+export function videoProblem(v: Pick<VideoRef, 'provider' | 'videoId'>): string | null {
+  if (v.provider === 'youtube') return /^[A-Za-z0-9_-]{11}$/.test(v.videoId) ? null : 'An 11-character YouTube video id';
+  return MEDIA_PATH_PATTERN.test(v.videoId) ? null : 'Upload the video file';
+}
 
 const VideoBlock = VideoRefSchema.extend({
   id: BlockIdSchema,

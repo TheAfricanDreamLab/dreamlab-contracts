@@ -2,7 +2,8 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { CourseSlugSchema } from './catalog';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
-import { CourseAuthoringSchema, CourseVisibilitySchema } from './content';
+import { CourseAuthoringSchema, CourseVisibilitySchema, videoProblem } from './content';
+import { CourseMediaUploadRequestSchema, CourseMediaUploadSchema } from './media';
 
 const c = initContract();
 
@@ -70,7 +71,7 @@ export const DraftSchema = DraftSummarySchema.extend({
 export type Draft = z.infer<typeof DraftSchema>;
 
 export const AuthoringOverviewSchema = z.object({
-  /** Courses the active organisation owns, with any open draft. */
+  /** Courses the active organisation owns (for a course's own authors, just theirs), with any open draft. */
   courses: z.array(
     z.object({
       courseId: UuidSchema,
@@ -79,6 +80,8 @@ export const AuthoringOverviewSchema = z.object({
       visibility: CourseVisibilitySchema,
       versionNo: z.number().int().nullable(),
       openDraft: z.object({ id: UuidSchema, status: DraftStatusSchema }).nullable(),
+      /** The caller may start or edit a draft of it (an organisation author, or this course's). */
+      canEdit: z.boolean(),
     }),
   ),
   /** Open drafts of new courses (not yet published). */
@@ -175,6 +178,14 @@ export const authoringContract = c.router(
       responses: { 200: DraftSchema, ...errors },
       summary: 'Publish a reviewed draft as the course’s next version (reviewer)',
     },
+    uploadMedia: {
+      method: 'POST',
+      path: '/catalog/authoring/drafts/:draftId/media',
+      pathParams: DraftParams,
+      body: CourseMediaUploadRequestSchema,
+      responses: { 201: CourseMediaUploadSchema, ...errors },
+      summary: 'Get an upload URL for a cover image or video in a draft (PUT the file there, then use its path)',
+    },
     remove: {
       method: 'DELETE',
       path: '/catalog/authoring/drafts/:draftId',
@@ -190,7 +201,19 @@ export const authoringContract = c.router(
 export function draftIssues(doc: unknown): DraftIssue[] {
   const parsed = CourseAuthoringSchema.safeParse(doc);
   if (parsed.success) {
-    return parsed.data.modules?.length ? [] : [{ path: 'modules', message: 'Add at least one module with an item before publishing' }];
+    const issues: DraftIssue[] = [];
+    if (!parsed.data.modules?.length) issues.push({ path: 'modules', message: 'Add at least one module with an item before publishing' });
+    const visit = (value: unknown, path: (string | number)[]): void => {
+      if (!value || typeof value !== 'object') return;
+      const v = value as Record<string, unknown>;
+      if ((v.provider === 'youtube' || v.provider === 'file') && typeof v.videoId === 'string') {
+        const problem = videoProblem({ provider: v.provider, videoId: v.videoId });
+        if (problem) issues.push({ path: [...path, 'videoId'].join('.'), message: problem });
+      }
+      for (const [k, child] of Object.entries(v)) visit(child, [...path, k]);
+    };
+    visit(parsed.data, []);
+    return issues;
   }
   return parsed.error.issues.slice(0, 200).map((i) => ({ path: i.path.join('.'), message: i.message }));
 }

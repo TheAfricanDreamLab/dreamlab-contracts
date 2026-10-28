@@ -242,6 +242,13 @@ export const catalogContract = c.router(
       responses: { 200: ImportResultSchema, ...errors },
       summary: 'Create or update a course from an authored course file; changed content is published as a new version (platform admin)',
     },
+    adminExportProgram: {
+      method: 'GET',
+      path: '/catalog/admin/programs/:slug',
+      pathParams: z.object({ slug: CourseSlugSchema }),
+      responses: { 200: ProgramAuthoringSchema, ...errors },
+      summary: 'A programme as an authored programme file, to edit in the browser and import again (platform admin)',
+    },
     adminImportProgram: {
       method: 'POST',
       path: '/catalog/admin/programs/import',
