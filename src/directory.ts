@@ -26,7 +26,7 @@ export const OrgStatusSchema = z.enum(['pending', 'active', 'suspended']);
 /** Slugs that are hostnames or routes of the platform itself, never organisation subdomains. */
 export const RESERVED_SLUGS = [
   'www', 'api', 'app', 'admin', 'platform', 'static', 'cdn', 'mail', 'email', 'docs', 'status', 'help', 'support',
-  'auth', 'login', 'signup', 'staging', 'dev', 'test', 'assets', 'media', 'blog', 'traefik', 'rabbitmq', 'grafana',
+  'auth', 'login', 'signup', 'staging', 'dev', 'test', 'assets', 'media', 'blog', 'traefik', 'rabbitmq', 'grafana', 'rtc', 'livekit',
 ] as const;
 
 export const OrganizationSchema = z.object({
