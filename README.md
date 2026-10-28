@@ -17,6 +17,10 @@ This package is the seam between `dreamlab-api`, `dreamlab-web`, `dreamlab-mobil
 | `catalog` | Course and programme catalog, syllabus outlines, catalog administration |
 | `learning` | Enrolments, the course player, progress, checks, quiz attempts, assignment submissions, discussions, journal, learning stats |
 | `cohorts` | Cohorts of a programme: dated calendar, class sessions on a weekly rhythm, joining, electives, attendance, my programme |
+| `grading` | Faculty grading: queue, rubric levels 0–4, release and regrade, course final score |
+| `authoring` | Course authoring in the browser: drafts, review, publishing, draft issues, course media uploads |
+| `media` | Uploads: course images and videos (`/media/...` paths), assignment files, upload tickets and short-lived file links |
+| `notifications` | Notifications per person, unread count, mark read, email preferences per category |
 | `platform` | Platform administration: overview, people search, suspend / reactivate |
 | `index` | `apiV1Contract` (served under `/v1`), `contract` (everything the gateway serves) |
 
