@@ -13,8 +13,10 @@ export * from './authoring';
 export * from './platform';
 export * from './notifications';
 export * from './admissions';
+export * from './assigned';
+export * from './outcomes';
 export * from './community';
 export * from './instructors';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.14.0';
+export const CONTRACTS_VERSION = '0.15.0';
