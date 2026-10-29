@@ -6,6 +6,9 @@ import { FileLinkSchema, UploadTicketSchema } from './media';
 
 const c = initContract();
 
+/** No id listed twice. */
+const distinct = (ids: string[]) => new Set(ids).size === ids.length;
+
 const errors = {
   400: ErrorResponseSchema,
   401: ErrorResponseSchema,
@@ -102,7 +105,7 @@ export type MentorMeeting = z.infer<typeof MentorMeetingSchema>;
 
 export const AssignMentorsSchema = z.object({
   mentorUserId: UuidSchema,
-  learnerUserIds: z.array(UuidSchema).min(1).max(50),
+  learnerUserIds: z.array(UuidSchema).min(1).max(50).refine(distinct, 'List each person once'),
 });
 export const ScheduleMeetingSchema = z.object({
   assignmentId: UuidSchema,
@@ -136,7 +139,7 @@ export const DreamCircleSchema = z.object({
 export type DreamCircle = z.infer<typeof DreamCircleSchema>;
 export const SaveCircleSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  memberUserIds: z.array(UuidSchema).min(2, 'A circle has at least two members').max(12),
+  memberUserIds: z.array(UuidSchema).min(2, 'A circle has at least two members').max(12).refine(distinct, 'List each person once'),
 });
 
 /** A learner's people: their mentors, upcoming mentor meetings, and their circle. */

@@ -29,7 +29,7 @@ export const InstructorProfileSchema = z.object({
   name: z.string(),
   title: z.string(),
   bio: z.string(),
-  photoUrl: z.string().nullable(),
+  photoUrl: MediaImageUrlSchema.nullable(),
   /** The person's account, when they teach on the platform. */
   userId: UuidSchema.nullable(),
   /** Courses this profile is on. */

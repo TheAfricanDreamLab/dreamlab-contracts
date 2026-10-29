@@ -170,7 +170,9 @@ export const UpdateCycleSchema = z
     closesAt: TimestampSchema.optional(),
     status: AdmissionCycleStatusSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine((c) => Object.keys(c).length > 0, 'Change at least one thing')
+  .refine((c) => !c.opensAt || !c.closesAt || Date.parse(c.closesAt) > Date.parse(c.opensAt), { message: 'The cycle must close after it opens', path: ['closesAt'] });
 
 export const StageTransitionSchema = z.object({
   from: AdmissionStageSchema.nullable(),
@@ -260,7 +262,8 @@ export const ScholarshipRequestSchema = z.object({ percent: z.number().int().min
 export const DecisionRequestSchema = z.object({ outcome: DecisionOutcomeSchema, note: z.string().trim().min(3, 'Record the reason for the decision').max(2000) });
 
 const AppParams = z.object({ applicationId: UuidSchema });
-const StageParams = z.object({ applicationId: UuidSchema, stage: AdmissionStageSchema });
+export const ApplicantStageSchema = z.enum(APPLICANT_STAGES);
+const StageParams = z.object({ applicationId: UuidSchema, stage: ApplicantStageSchema });
 const CycleParams = z.object({ cycleId: UuidSchema });
 
 export const admissionsContract = c.router(

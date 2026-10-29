@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
   ADMISSION_STAGES,
+  admissionsContract,
   APPLICANT_STAGES,
+  AssignMentorsSchema,
   compositeScores,
   CourseStaffSchema,
   CreateCycleSchema,
+  InstructorProfileSchema,
   permissionsForRole,
   ReviewRequestSchema,
   SaveCircleSchema,
   StageAnswerSchemas,
   STAFF_STAGES,
+  UpdateCycleSchema,
 } from '../src';
 
 describe('admissions', () => {
@@ -46,5 +50,34 @@ describe('community and staff', () => {
     expect(SaveCircleSchema.safeParse({ name: 'Circle A', memberUserIds: ['0b5c8a52-3f1e-4c2a-9d7e-1a2b3c4d5e6f'] }).success).toBe(false);
     const id = '0b5c8a52-3f1e-4c2a-9d7e-1a2b3c4d5e6f';
     expect(CourseStaffSchema.safeParse({ staff: [{ profileId: id, role: 'lead' }, { profileId: id, role: 'assistant' }] }).success).toBe(false);
+  });
+});
+
+describe('review fixes', () => {
+  const a = '0b5c8a52-3f1e-4c2a-9d7e-1a2b3c4d5e6f';
+  const b = '1c6d9b63-4a2f-4d3b-8e8f-2b3c4d5e6f70';
+
+  it('refuses empty cycle changes and cycles that close before they open', () => {
+    expect(UpdateCycleSchema.safeParse({}).success).toBe(false);
+    expect(UpdateCycleSchema.safeParse({ opensAt: '2027-01-10T00:00:00.000Z', closesAt: '2027-01-01T00:00:00.000Z' }).success).toBe(false);
+    expect(UpdateCycleSchema.safeParse({ status: 'open' }).success).toBe(true);
+  });
+
+  it('lets applicants save and submit only their own six stages', () => {
+    const params = admissionsContract.saveStage.pathParams;
+    expect(params.safeParse({ applicationId: a, stage: 'video' }).success).toBe(true);
+    expect(params.safeParse({ applicationId: a, stage: 'decision' }).success).toBe(false);
+  });
+
+  it('lists each person once in circles and mentor assignments', () => {
+    expect(SaveCircleSchema.safeParse({ name: 'Circle A', memberUserIds: [a, a] }).success).toBe(false);
+    expect(SaveCircleSchema.safeParse({ name: 'Circle A', memberUserIds: [a, b] }).success).toBe(true);
+    expect(AssignMentorsSchema.safeParse({ mentorUserId: b, learnerUserIds: [a, a] }).success).toBe(false);
+  });
+
+  it('only accepts uploaded or allowed images as instructor photos', () => {
+    const profile = { id: a, name: 'Dr Funmi', title: '', bio: '', userId: null, courses: [] };
+    expect(InstructorProfileSchema.safeParse({ ...profile, photoUrl: 'https://evil.example/x.png' }).success).toBe(false);
+    expect(InstructorProfileSchema.safeParse({ ...profile, photoUrl: null }).success).toBe(true);
   });
 });
