@@ -21,6 +21,9 @@ This package is the seam between `dreamlab-api`, `dreamlab-web`, `dreamlab-mobil
 | `authoring` | Course authoring in the browser: drafts, review, publishing, draft issues, course media uploads |
 | `media` | Uploads: course images and videos (`/media/...` paths), assignment files, upload tickets and short-lived file links |
 | `notifications` | Notifications per person, unread count, mark read, email preferences per category |
+| `admissions` | Admission cycles and the ten-stage application pipeline: applicant stages and their answers, reviews scored on six dimensions (DBPI™ and DSI™), immutable AI-assisted evaluations, interviews, scholarships, decisions |
+| `community` | Live classes (join tickets, recordings), mentor assignments and meetings, Dream Circles, a learner's community |
+| `instructors` | Instructor profiles of an organisation and the staff of each course |
 | `platform` | Platform administration: overview, people search, suspend / reactivate |
 | `index` | `apiV1Contract` (served under `/v1`), `contract` (everything the gateway serves) |
 

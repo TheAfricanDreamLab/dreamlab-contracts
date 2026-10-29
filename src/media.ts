@@ -88,3 +88,4 @@ export type SubmissionFile = z.infer<typeof SubmissionFileSchema>;
 
 /** A short-lived link to open a private file. */
 export const FileLinkSchema = z.object({ url: z.string().url(), expiresAt: TimestampSchema });
+export type FileLink = z.infer<typeof FileLinkSchema>;

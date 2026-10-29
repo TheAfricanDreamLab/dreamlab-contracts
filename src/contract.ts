@@ -16,6 +16,9 @@ import { enterpriseContract } from './enterprise';
 import { gradingContract } from './grading';
 import { learningContract } from './learning';
 import { notificationsContract } from './notifications';
+import { admissionsContract } from './admissions';
+import { communityContract } from './community';
+import { instructorsContract } from './instructors';
 import { platformContract } from './platform';
 
 const c = initContract();
@@ -54,6 +57,9 @@ export const apiV1Contract = c.router(
     grading: gradingContract,
     authoring: authoringContract,
     notifications: notificationsContract,
+    admissions: admissionsContract,
+    community: communityContract,
+    instructors: instructorsContract,
   },
   { pathPrefix: '/v1', strictStatusCodes: true },
 );

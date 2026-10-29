@@ -369,7 +369,14 @@ export const CoverSchema = z.object({
   if (!c.imageCredit?.trim()) ctx.addIssue({ code: 'custom', path: ['imageCredit'], message: 'Credit the cover photo' });
 });
 
-export const InstructorSchema = z.object({ name: z.string().max(120), title: z.string().max(160), bio: z.string().max(800) });
+export const InstructorSchema = z.object({
+  name: z.string().max(120),
+  title: z.string().max(160),
+  bio: z.string().max(1200),
+  /** Course staff (INSTR-1) carry a photo and their role on the course; course files usually do not. */
+  photoUrl: MediaImageUrlSchema.nullable().optional(),
+  role: z.enum(['lead', 'instructor', 'assistant']).optional(),
+});
 
 /**
  * A course as an author (or a seed) defines it. Without `modules` the course is listed as

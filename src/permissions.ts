@@ -34,6 +34,12 @@ export const PERMISSIONS = [
   'course_run.teach',
   'submission.grade',
   'mentorship.conduct',
+  /** Admission cycles for the organisation's programmes (ADM-1). */
+  'admissions.manage',
+  /** Read and score applications, run interviews, move applications along. */
+  'admissions.review',
+  /** Admit, waitlist or decline, and award scholarships: always a recorded human act. */
+  'admissions.decide',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 export const PermissionSchema = z.enum(PERMISSIONS);
@@ -53,7 +59,13 @@ export interface SystemRole {
 
 /** Org admins run the organisation, its cohorts and its own courses (authoring and publishing them, CAT-3). */
 const ORG_ADMIN_PERMISSIONS = PERMISSIONS.filter(
-  (p) => p.startsWith('org.') || p === 'learning.assign' || p === 'cohort.manage' || p === 'course.content.edit' || p === 'course.publish',
+  (p) =>
+    p.startsWith('org.') ||
+    p.startsWith('admissions.') ||
+    p === 'learning.assign' ||
+    p === 'cohort.manage' ||
+    p === 'course.content.edit' ||
+    p === 'course.publish',
 );
 
 export const SYSTEM_ROLES = [
@@ -140,6 +152,13 @@ export const SYSTEM_ROLES = [
     description: 'Works with assigned learners.',
     scopeTypes: ['org', 'program', 'cohort'],
     permissions: ['org.read', 'mentorship.conduct'],
+  },
+  {
+    key: 'admissions_officer',
+    name: 'Admissions officer',
+    description: 'Reviews and scores applications and runs interviews; decisions stay with admissions.decide.',
+    scopeTypes: ['org', 'program'],
+    permissions: ['org.read', 'admissions.review'],
   },
   {
     key: 'sponsor_viewer',
