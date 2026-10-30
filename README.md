@@ -24,6 +24,8 @@ This package is the seam between `dreamlab-api`, `dreamlab-web`, `dreamlab-mobil
 | `admissions` | Admission cycles and the ten-stage application pipeline: applicant stages and their answers, reviews scored on six dimensions (DBPI™ and DSI™), immutable AI-assisted evaluations, interviews, scholarships, decisions |
 | `community` | Live classes (join tickets, recordings), mentor assignments and meetings, Dream Circles, a learner's community |
 | `instructors` | Instructor profiles of an organisation and the staff of each course |
+| `outcomes` | Dream Residency stages and reviews, the 12-month action plan, the Dream Score™ (dimensions, weights, evidence, growth), the graduation checklist, the Dream Portfolio and credentials |
+| `assigned` | Assigned learning: courses an organisation assigns to people or groups, with due dates and progress |
 | `platform` | Platform administration: overview, people search, suspend / reactivate |
 | `index` | `apiV1Contract` (served under `/v1`), `contract` (everything the gateway serves) |
 
