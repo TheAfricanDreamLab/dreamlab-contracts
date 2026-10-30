@@ -1,6 +1,7 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { CourseSlugSchema, CourseSummarySchema } from './catalog';
+import { DateSchema } from './cohorts';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 
 const c = initContract();
@@ -20,7 +21,8 @@ const errors = {
  * assignment they were given.
  */
 
-const DateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'A date (YYYY-MM-DD)');
+/** A real calendar date (YYYY-MM-DD). */
+const DateOnly = DateSchema;
 
 export const ASSIGNEE_STATUSES = ['not_started', 'in_progress', 'completed', 'overdue'] as const;
 export const AssigneeStatusSchema = z.enum(ASSIGNEE_STATUSES);

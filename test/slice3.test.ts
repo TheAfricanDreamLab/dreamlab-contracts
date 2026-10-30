@@ -63,5 +63,6 @@ describe('assigned learning', () => {
     expect(CreateLearningAssignmentSchema.safeParse({ courseSlug: 'negotiation' }).success).toBe(false);
     expect(CreateLearningAssignmentSchema.safeParse({ courseSlug: 'negotiation', groupIds: [id], dueOn: '2027-01-31' }).success).toBe(true);
     expect(CreateLearningAssignmentSchema.safeParse({ courseSlug: 'negotiation', userIds: [id], dueOn: '31/01/2027' }).success).toBe(false);
+    expect(CreateLearningAssignmentSchema.safeParse({ courseSlug: 'negotiation', userIds: [id], dueOn: '2027-02-31' }).success).toBe(false);
   });
 });
