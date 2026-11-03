@@ -427,6 +427,8 @@ export const AccessTokenClaimsSchema = z.object({
   amr: z.array(z.string()).default([]),
   /** The active context requires a second factor for admin permissions (MFA_PROTECTED_PERMISSIONS). */
   mfr: z.boolean().default(false),
+  /** The active organisation is waiting for platform approval: only IN_REVIEW_PERMISSIONS apply. */
+  opd: z.boolean().default(false),
   iat: z.number().int(),
   exp: z.number().int(),
   jti: z.string(),

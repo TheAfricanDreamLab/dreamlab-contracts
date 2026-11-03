@@ -131,6 +131,8 @@ export const UpdateCohortSchema = z
 export const UpdateSessionSchema = z
   .object({
     location: z.string().trim().max(500).nullable().optional(),
+    /** Move a class online (live room) or to a place. */
+    mode: SessionModeSchema.optional(),
     cancelled: z.boolean().optional(),
     startsAt: TimestampSchema.optional(),
   })
