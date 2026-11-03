@@ -211,8 +211,12 @@ export const GraduationSchema = z.object({
   /** All requirements confirmed: the cohort's managers may graduate the learner. */
   eligible: z.boolean(),
   graduatedAt: TimestampSchema.nullable(),
+  /** The graduation credential while it is valid; null before graduation and once revoked. */
   credentialCode: z.string().nullable(),
-  can: z.object({ confirm: z.boolean(), graduate: z.boolean() }),
+  /** Set once the issuing organisation has revoked the credential, with its stated reason. */
+  credentialRevoked: z.object({ at: TimestampSchema, reason: z.string() }).nullable(),
+  /** revokeCredential: the cohort's managers, while the credential is valid. */
+  can: z.object({ confirm: z.boolean(), graduate: z.boolean(), revokeCredential: z.boolean() }),
 });
 export type Graduation = z.infer<typeof GraduationSchema>;
 
