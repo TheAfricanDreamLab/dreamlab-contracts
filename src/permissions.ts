@@ -188,7 +188,7 @@ export const MFA_PROTECTED_PERMISSIONS: readonly Permission[] = PERMISSIONS.filt
  * sponsors): set it up (settings, people, roles, teams, sign-in security), nothing else. Cohorts,
  * courses, admissions and assigned learning start once it is approved.
  */
-export const IN_REVIEW_PERMISSIONS: readonly Permission[] = PERMISSIONS.filter((p) => p.startsWith('org.'));
+export const IN_REVIEW_PERMISSIONS: readonly Permission[] = PERMISSIONS.filter((p) => p.startsWith('org.') && p !== 'org.reports.read');
 
 /** Permissions an organisation may put in its own custom roles: never platform-wide ones. */
 export const CUSTOM_ROLE_PERMISSIONS: readonly Permission[] = PERMISSIONS.filter((p) => !p.startsWith('platform.'));
