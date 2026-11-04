@@ -127,7 +127,7 @@ export const MentoringSchema = z.object({
   learners: z.array(MentorAssignmentSchema.extend({ cohortName: z.string(), lastMeetingAt: TimestampSchema.nullable(), nextMeetingAt: TimestampSchema.nullable() })),
   meetings: z.array(MentorMeetingSchema),
   /** Dream Circles the caller's mentees belong to, which the caller can open (COMM-2). */
-  circles: z.array(z.object({ id: UuidSchema, name: z.string(), cohortName: z.string() })),
+  circles: z.array(z.object({ id: UuidSchema, name: z.string(), cohortName: z.string() })).default([]),
 });
 
 // ---------- Dream Circles ----------
@@ -206,7 +206,7 @@ export type CirclePost = z.infer<typeof CirclePostSchema>;
 export const CirclePostPageSchema = z.object({
   items: z.array(CirclePostSchema),
   /** Pass back as `before` for the next (older) page; null when there is none. */
-  nextCursor: z.string().nullable(),
+  nextCursor: z.string().max(80).nullable(),
 });
 export type CirclePostPage = z.infer<typeof CirclePostPageSchema>;
 
@@ -243,7 +243,7 @@ export type CreateCirclePost = z.infer<typeof CreateCirclePostSchema>;
 export const CircleUploadRequestSchema = z.object({
   fileName: z.string().trim().min(1).max(200),
   contentType: z.string().trim().min(3).max(120),
-  size: z.number().int().positive(),
+  size: z.number().int().positive().max(CIRCLE_UPLOAD_LIMITS.video, 'At most 100 MB'),
   durationSec: z.number().positive().max(60 * 60).optional(),
   width: z.number().int().positive().max(20_000).optional(),
   height: z.number().int().positive().max(20_000).optional(),
