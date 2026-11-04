@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
+import { EmailSchema, ErrorResponseSchema, PhoneSchema, TimestampSchema, UuidSchema } from './common';
 import { SessionModeSchema } from './cohorts';
 import { FileLinkSchema, UploadTicketSchema } from './media';
 
@@ -217,16 +217,67 @@ export const CirclePostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+/**
+ * Contact details a person chooses to share with one circle (COMM-3). Nothing is shared until they
+ * fill it in; whoever can open the circle (its members, their mentors and cohort staff) sees it.
+ */
+export const CircleContactSchema = z.object({
+  email: EmailSchema.nullable().default(null),
+  phone: PhoneSchema.nullable().default(null),
+  /** The phone number is on WhatsApp. */
+  whatsapp: z.boolean().default(false),
+  linkedin: z
+    .string()
+    .trim()
+    .url()
+    .max(300)
+    .refine((u) => /^https:\/\/([a-z]{2,3}\.|www\.)?linkedin\.com\//i.test(u), 'Use your LinkedIn profile link, e.g. https://www.linkedin.com/in/your-name')
+    .nullable()
+    .default(null),
+});
+export type CircleContact = z.infer<typeof CircleContactSchema>;
+
+/** A circle meetup: online in the circle's call, or in person (COMM-3). Everyone is reminded an hour ahead. */
+export const CIRCLE_MEETUP_REMINDER_MINUTES = 60;
+export const CircleMeetupSchema = z.object({
+  id: UuidSchema,
+  circleId: UuidSchema,
+  title: z.string(),
+  startsAt: TimestampSchema,
+  durationMin: z.number().int(),
+  mode: SessionModeSchema,
+  location: z.string().nullable(),
+  details: z.string(),
+  createdBy: Person,
+  can: z.object({ cancel: z.boolean() }),
+});
+export type CircleMeetup = z.infer<typeof CircleMeetupSchema>;
+
+export const CreateCircleMeetupSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120),
+    startsAt: TimestampSchema,
+    durationMin: z.number().int().min(15).max(240).default(60),
+    mode: SessionModeSchema.default('virtual'),
+    location: z.string().trim().max(200).nullable().default(null),
+    details: z.string().trim().max(1000).default(''),
+  })
+  .refine((m) => m.mode === 'virtual' || !!m.location, { message: 'Say where you will meet', path: ['location'] });
+export type CreateCircleMeetup = z.infer<typeof CreateCircleMeetupSchema>;
+
 export const CircleSpaceSchema = z.object({
   id: UuidSchema,
   name: z.string(),
   cohortId: UuidSchema,
   cohortName: z.string(),
-  members: z.array(Person.extend({ role: CircleRoleSchema })),
-  you: z.object({ role: CircleRoleSchema }),
+  /** Each person's shared contact details, or null when they share none. */
+  members: z.array(Person.extend({ role: CircleRoleSchema, contact: CircleContactSchema.nullable().default(null) })),
+  you: z.object({ role: CircleRoleSchema, contact: CircleContactSchema.nullable().default(null) }),
   /** Whether a call is on now, and how many people are in it. */
   call: z.object({ active: z.boolean(), participants: z.number().int() }),
   can: z.object({ post: z.boolean(), moderate: z.boolean() }),
+  /** Upcoming meetups, soonest first, including one under way. */
+  meetups: z.array(CircleMeetupSchema).default([]),
 });
 export type CircleSpace = z.infer<typeof CircleSpaceSchema>;
 
@@ -431,6 +482,29 @@ export const communityContract = c.router(
       body: CircleUploadRequestSchema,
       responses: { 201: CircleUploadTicketSchema, ...errors },
       summary: 'A link to upload a voice message, picture, video or file straight to storage, for a post',
+    },
+    saveCircleContact: {
+      method: 'PUT',
+      path: '/learning/circles/:circleId/contact',
+      pathParams: CircleParams,
+      body: CircleContactSchema,
+      responses: { 200: CircleContactSchema, ...errors },
+      summary: 'Choose the contact details I share with this circle; empty shares nothing (members and mentors)',
+    },
+    createCircleMeetup: {
+      method: 'POST',
+      path: '/learning/circles/:circleId/meetups',
+      pathParams: CircleParams,
+      body: CreateCircleMeetupSchema,
+      responses: { 201: CircleMeetupSchema, ...errors },
+      summary: 'Schedule a circle meetup; everyone is told and reminded an hour ahead',
+    },
+    cancelCircleMeetup: {
+      method: 'DELETE',
+      path: '/learning/circle-meetups/:meetupId',
+      pathParams: z.object({ meetupId: UuidSchema }),
+      responses: { 204: c.noBody(), ...errors },
+      summary: 'Cancel a meetup (whoever scheduled it, or the circle’s mentors and cohort staff)',
     },
     joinCircleCall: {
       method: 'POST',
