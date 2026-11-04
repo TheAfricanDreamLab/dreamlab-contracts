@@ -126,6 +126,8 @@ export const MentoringSchema = z.object({
   /** Learners assigned to the caller as mentor, across cohorts. */
   learners: z.array(MentorAssignmentSchema.extend({ cohortName: z.string(), lastMeetingAt: TimestampSchema.nullable(), nextMeetingAt: TimestampSchema.nullable() })),
   meetings: z.array(MentorMeetingSchema),
+  /** Dream Circles the caller's mentees belong to, which the caller can open (COMM-2). */
+  circles: z.array(z.object({ id: UuidSchema, name: z.string(), cohortName: z.string() })).default([]),
 });
 
 // ---------- Dream Circles ----------
@@ -141,6 +143,116 @@ export const SaveCircleSchema = z.object({
   name: z.string().trim().min(2).max(80),
   memberUserIds: z.array(UuidSchema).min(2, 'A circle has at least two members').max(12).refine(distinct, 'List each person once'),
 });
+
+// ---------- A Dream Circle's own space (COMM-2) ----------
+// A board of posts and replies with voice messages, pictures, videos, files and links, and a live
+// call any member can start. Members, the members' mentors and the cohort's staff can read it; the
+// mentors and staff can also pin and remove posts. Calls are never recorded.
+
+export const CIRCLE_POST_MAX_CHARS = 4000;
+export const CIRCLE_ATTACHMENTS_MAX = 6;
+/** Upload limits per kind, in bytes. Pictures are shrunk in the browser before they are sent. */
+export const CIRCLE_UPLOAD_LIMITS = { image: 8 * 1024 * 1024, audio: 10 * 1024 * 1024, video: 100 * 1024 * 1024, file: 20 * 1024 * 1024 } as const;
+/** Voice messages: up to five minutes. */
+export const CIRCLE_VOICE_MAX_SECONDS = 300;
+
+export const CircleAttachmentKindSchema = z.enum(['image', 'audio', 'video', 'file']);
+export type CircleAttachmentKind = z.infer<typeof CircleAttachmentKindSchema>;
+
+export const CircleAttachmentSchema = z.object({
+  id: UuidSchema,
+  kind: CircleAttachmentKindSchema,
+  fileName: z.string(),
+  contentType: z.string(),
+  size: z.number().int(),
+  /** A short-lived signed link, ready for <img>, <audio> or <video> (no extra request per file). */
+  url: z.string().url(),
+  /** Voice messages and videos. */
+  durationSec: z.number().nullable(),
+  /** Pictures and videos, so the page reserves their space before they load. */
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+});
+export type CircleAttachment = z.infer<typeof CircleAttachmentSchema>;
+
+/** A link in a post, with the page's title and description read once when the post was made. */
+export const LinkPreviewSchema = z.object({
+  url: z.string().url(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  siteName: z.string().nullable(),
+});
+export type LinkPreview = z.infer<typeof LinkPreviewSchema>;
+
+export const CircleRoleSchema = z.enum(['member', 'mentor', 'staff']);
+export type CircleRole = z.infer<typeof CircleRoleSchema>;
+
+export const CirclePostSchema = z.object({
+  id: UuidSchema,
+  circleId: UuidSchema,
+  /** Set on replies: the post they answer. Replies have no replies of their own. */
+  parentId: UuidSchema.nullable(),
+  author: Person.extend({ role: CircleRoleSchema }),
+  body: z.string(),
+  attachments: z.array(CircleAttachmentSchema),
+  links: z.array(LinkPreviewSchema),
+  pinned: z.boolean(),
+  replyCount: z.number().int(),
+  createdAt: TimestampSchema,
+  can: z.object({ delete: z.boolean(), pin: z.boolean() }),
+});
+export type CirclePost = z.infer<typeof CirclePostSchema>;
+
+export const CirclePostPageSchema = z.object({
+  items: z.array(CirclePostSchema),
+  /** Pass back as `before` for the next (older) page; null when there is none. */
+  nextCursor: z.string().max(80).nullable(),
+});
+export type CirclePostPage = z.infer<typeof CirclePostPageSchema>;
+
+export const CirclePostsQuerySchema = z.object({
+  /** Replies to this post (oldest first) instead of the circle's posts (newest first, pinned on top). */
+  parentId: UuidSchema.optional(),
+  before: z.string().max(80).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const CircleSpaceSchema = z.object({
+  id: UuidSchema,
+  name: z.string(),
+  cohortId: UuidSchema,
+  cohortName: z.string(),
+  members: z.array(Person.extend({ role: CircleRoleSchema })),
+  you: z.object({ role: CircleRoleSchema }),
+  /** Whether a call is on now, and how many people are in it. */
+  call: z.object({ active: z.boolean(), participants: z.number().int() }),
+  can: z.object({ post: z.boolean(), moderate: z.boolean() }),
+});
+export type CircleSpace = z.infer<typeof CircleSpaceSchema>;
+
+export const CreateCirclePostSchema = z
+  .object({
+    body: z.string().trim().max(CIRCLE_POST_MAX_CHARS).default(''),
+    /** From the upload tickets, once each file is uploaded. */
+    attachmentIds: z.array(UuidSchema).max(CIRCLE_ATTACHMENTS_MAX).refine(distinct, 'List each file once').default([]),
+    parentId: UuidSchema.optional(),
+  })
+  .refine((p) => p.body.length > 0 || p.attachmentIds.length > 0, 'Write something or add a file');
+export type CreateCirclePost = z.infer<typeof CreateCirclePostSchema>;
+
+export const CircleUploadRequestSchema = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  contentType: z.string().trim().min(3).max(120),
+  size: z.number().int().positive().max(CIRCLE_UPLOAD_LIMITS.video, 'At most 100 MB'),
+  durationSec: z.number().positive().max(60 * 60).optional(),
+  width: z.number().int().positive().max(20_000).optional(),
+  height: z.number().int().positive().max(20_000).optional(),
+});
+export const CircleUploadTicketSchema = UploadTicketSchema.extend({ attachmentId: UuidSchema, kind: CircleAttachmentKindSchema });
+export type CircleUploadTicket = z.infer<typeof CircleUploadTicketSchema>;
+
+const CircleParams = z.object({ circleId: UuidSchema });
+const CirclePostParams = z.object({ postId: UuidSchema });
 
 /** A learner's people: their mentors, upcoming mentor meetings, and their circle. */
 export const MyCommunitySchema = z.object({
@@ -273,6 +385,60 @@ export const communityContract = c.router(
       path: '/learning/me/community',
       responses: { 200: MyCommunitySchema, ...errors },
       summary: 'My mentors, mentor meetings, Dream Circles and class recordings',
+    },
+    circleSpace: {
+      method: 'GET',
+      path: '/learning/circles/:circleId/space',
+      pathParams: CircleParams,
+      responses: { 200: CircleSpaceSchema, ...errors },
+      summary: 'A circle’s space: members, whether a call is on, and what you may do (members, their mentors, cohort staff)',
+    },
+    circlePosts: {
+      method: 'GET',
+      path: '/learning/circles/:circleId/posts',
+      pathParams: CircleParams,
+      query: CirclePostsQuerySchema,
+      responses: { 200: CirclePostPageSchema, ...errors },
+      summary: 'A page of the circle’s posts (newest first, pinned on top), or of one post’s replies',
+    },
+    createCirclePost: {
+      method: 'POST',
+      path: '/learning/circles/:circleId/posts',
+      pathParams: CircleParams,
+      body: CreateCirclePostSchema,
+      responses: { 201: CirclePostSchema, ...errors },
+      summary: 'Post to the circle, or reply to a post, with text, uploaded files and links',
+    },
+    deleteCirclePost: {
+      method: 'DELETE',
+      path: '/learning/circle-posts/:postId',
+      pathParams: CirclePostParams,
+      responses: { 204: c.noBody(), ...errors },
+      summary: 'Remove a post or reply (its author, or the circle’s mentors and cohort staff)',
+    },
+    pinCirclePost: {
+      method: 'PUT',
+      path: '/learning/circle-posts/:postId/pin',
+      pathParams: CirclePostParams,
+      body: z.object({ pinned: z.boolean() }),
+      responses: { 200: CirclePostSchema, ...errors },
+      summary: 'Pin a post to the top of the circle, or unpin it (mentors and cohort staff)',
+    },
+    circleUpload: {
+      method: 'POST',
+      path: '/learning/circles/:circleId/uploads',
+      pathParams: CircleParams,
+      body: CircleUploadRequestSchema,
+      responses: { 201: CircleUploadTicketSchema, ...errors },
+      summary: 'A link to upload a voice message, picture, video or file straight to storage, for a post',
+    },
+    joinCircleCall: {
+      method: 'POST',
+      path: '/learning/circles/:circleId/call',
+      pathParams: CircleParams,
+      body: c.noBody(),
+      responses: { 200: JoinTicketSchema, ...errors },
+      summary: 'Start or join the circle’s call (camera and microphone for everyone; never recorded)',
     },
   },
   { strictStatusCodes: true },
