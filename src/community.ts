@@ -126,6 +126,8 @@ export const MentoringSchema = z.object({
   /** Learners assigned to the caller as mentor, across cohorts. */
   learners: z.array(MentorAssignmentSchema.extend({ cohortName: z.string(), lastMeetingAt: TimestampSchema.nullable(), nextMeetingAt: TimestampSchema.nullable() })),
   meetings: z.array(MentorMeetingSchema),
+  /** Dream Circles the caller's mentees belong to, which the caller can open (COMM-2). */
+  circles: z.array(z.object({ id: UuidSchema, name: z.string(), cohortName: z.string() })),
 });
 
 // ---------- Dream Circles ----------
