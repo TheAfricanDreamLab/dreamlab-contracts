@@ -102,6 +102,23 @@ export const CreateDraftSchema = z
   .strict()
   .refine((v) => (v.courseSlug ? !v.slug && !v.title : !!v.slug && !!v.title), 'Give either courseSlug, or a slug and title for a new course');
 
+/** One save in a draft's history (CAT-5): the last 50 saves are kept and can be restored. */
+export const DRAFT_HISTORY_KEPT = 50;
+export const DraftSaveSchema = z.object({
+  revision: z.number().int(),
+  savedAt: TimestampSchema,
+  savedBy: Person,
+  /** The course title at that save. */
+  title: z.string(),
+  /** Modules and items at that save, for telling saves apart. */
+  modules: z.number().int(),
+  items: z.number().int(),
+});
+export type DraftSave = z.infer<typeof DraftSaveSchema>;
+
+/** Bring back an earlier save as the newest one. `revision` is the draft's current revision, as for a save. */
+export const RestoreDraftSchema = z.object({ revision: z.number().int().min(0), restore: z.number().int().min(1) }).strict();
+
 /** A save: the whole document and the revision it was based on. Up to 1 MB of JSON. */
 export const SaveDraftSchema = z
   .object({
@@ -185,6 +202,28 @@ export const authoringContract = c.router(
       body: CourseMediaUploadRequestSchema,
       responses: { 201: CourseMediaUploadSchema, ...errors },
       summary: 'Get an upload URL for a cover image or video in a draft (PUT the file there, then use its path)',
+    },
+    history: {
+      method: 'GET',
+      path: '/catalog/authoring/drafts/:draftId/history',
+      pathParams: DraftParams,
+      responses: { 200: z.object({ items: z.array(DraftSaveSchema) }), ...errors },
+      summary: 'The draft’s recent saves, newest first (whoever can open the draft)',
+    },
+    historyDoc: {
+      method: 'GET',
+      path: '/catalog/authoring/drafts/:draftId/history/:revision',
+      pathParams: DraftParams.extend({ revision: z.coerce.number().int().min(1) }),
+      responses: { 200: z.object({ revision: z.number().int(), doc: z.record(z.unknown()) }), ...errors },
+      summary: 'The document as it was at one save',
+    },
+    restore: {
+      method: 'POST',
+      path: '/catalog/authoring/drafts/:draftId/restore',
+      pathParams: DraftParams,
+      body: RestoreDraftSchema,
+      responses: { 200: DraftSchema, ...errors },
+      summary: 'Make an earlier save the newest one (authors; the current version stays in the history)',
     },
     remove: {
       method: 'DELETE',
