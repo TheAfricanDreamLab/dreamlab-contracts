@@ -124,8 +124,14 @@ export const SaveDraftSchema = z
   .object({
     revision: z.number().int().min(0),
     doc: z.record(z.unknown()),
+    /**
+     * Keep this save as its own entry in the history. Autosaves leave it out: an author's autosaves
+     * within DRAFT_CHECKPOINT_MINUTES of each other are kept as one entry (the latest).
+     */
+    checkpoint: z.boolean().optional(),
   })
   .strict();
+export const DRAFT_CHECKPOINT_MINUTES = 5;
 
 export const ReviewNoteSchema = z.object({ note: z.string().trim().max(2000).nullable().default(null) }).strict();
 /** Asking for changes always says what to change. */
