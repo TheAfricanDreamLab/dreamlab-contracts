@@ -105,7 +105,7 @@ export const CreateDraftSchema = z
 /** One save in a draft's history (CAT-5): the last 50 saves are kept and can be restored. */
 export const DRAFT_HISTORY_KEPT = 50;
 export const DraftSaveSchema = z.object({
-  revision: z.number().int(),
+  revision: z.number().int().min(1),
   savedAt: TimestampSchema,
   savedBy: Person,
   /** The course title at that save. */
