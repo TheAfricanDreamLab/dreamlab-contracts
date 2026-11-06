@@ -9,7 +9,14 @@ import { MEDIA_PATH_PATTERN, MediaPathSchema } from './media';
  *   - delivery (`*Schema`): what a learner receives, with every answer stripped.
  */
 
-/** Paragraphs separated by blank lines; **bold**, *italic*, `- ` bullet and `1. ` numbered lines. */
+/**
+ * Course text, written in the editor and stored as a small, safe markup (never HTML):
+ * paragraphs separated by blank lines; `## ` and `### ` headings; **bold**, *italic*, ++underline++,
+ * `code` and [links](https://…) (https only); `- ` bullets and `1. ` numbered lines; `> ` quotes;
+ * fenced code blocks; and tables (`| a | b |` rows, the second row `| --- | --- |`).
+ * This schema checks only the length. The markup rules are enforced where the text is read: the
+ * editor writes only this markup, and renderers build elements (never HTML) and link only https.
+ */
 export const RichTextSchema = z.string().min(1).max(12_000);
 
 /** Stable within its item, e.g. `why-define`. Lets progress and answers survive re-ordering. */
