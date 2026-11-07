@@ -124,10 +124,11 @@ export function parseCaptions(text: string): CaptionCue[] {
       .slice(at + 1)
       .join('\n')
       .replace(/<[^>]*>/g, '')
-      .replace(/&amp;/g, '&')
+      // &amp; last, so "&amp;lt;" reads back as "&lt;", not "<".
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
       .trim();
     if (startS === null || endS === null || endS <= startS || !body) continue;
     cues.push({ startS: Math.round(startS * 1000) / 1000, endS: Math.round(endS * 1000) / 1000, text: body.slice(0, 500) });
@@ -149,7 +150,10 @@ export function vttTime(s: number): string {
 /** A WebVTT file for players. Cue text is plain: markup characters are escaped. */
 export function toVtt(cues: readonly CaptionCue[]): string {
   const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/-->/g, '--&gt;');
-  return `WEBVTT\n\n${cues.map((c, i) => `${i + 1}\n${vttTime(c.startS)} --> ${vttTime(c.endS)}\n${esc(c.text)}`).join('\n\n')}\n`;
+  // A blank line would end the cue early; once rounded, a cue still lasts at least a millisecond.
+  const text = (t: string) => esc(t.replace(/\n\s*\n+/g, '\n').trim());
+  const end = (c: CaptionCue) => Math.max(Math.round(c.endS * 1000), Math.round(c.startS * 1000) + 1) / 1000;
+  return `WEBVTT\n\n${cues.map((c, i) => `${i + 1}\n${vttTime(c.startS)} --> ${vttTime(end(c))}\n${text(c.text)}`).join('\n\n')}\n`;
 }
 
 // ---------- the library ----------

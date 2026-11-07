@@ -561,19 +561,23 @@ export function videoStepProblems(blocks: readonly { id: string; type: string; [
   blocks.forEach((b, i) => {
     if (b.type !== 'video') return;
     const duration = typeof b.durationS === 'number' ? b.durationS : null;
+    // Only the part that plays counts: from startS (or 0) to endS (or the end).
+    const from = typeof b.startS === 'number' ? b.startS : 0;
+    const to = typeof b.endS === 'number' ? b.endS : duration;
+    const outside = (at: number) => at < from || (to !== null && at >= to);
     const pauses = Array.isArray(b.pauses) ? (b.pauses as VideoPause[]) : [];
     pauses.forEach((p, k) => {
       const at = `${i}.pauses.${k}`;
       if (!interactive.has(p.blockId)) out.push({ path: `${at}.blockId`, message: 'Choose a question from this step' });
       else if (used.has(p.blockId)) out.push({ path: `${at}.blockId`, message: 'This question is already asked during a video' });
       used.add(p.blockId);
-      if (duration !== null && p.atS >= duration) out.push({ path: `${at}.atS`, message: 'After the end of the video' });
+      if (outside(p.atS)) out.push({ path: `${at}.atS`, message: p.atS < from ? 'Before the part of the video that plays' : 'After the end of the video' });
     });
     const chapters = Array.isArray(b.chapters) ? (b.chapters as VideoChapter[]) : [];
     chapters.forEach((c, k) => {
       const prev = chapters[k - 1];
       if (prev && c.atS <= prev.atS) out.push({ path: `${i}.chapters.${k}.atS`, message: 'Chapters go in time order' });
-      if (duration !== null && c.atS >= duration) out.push({ path: `${i}.chapters.${k}.atS`, message: 'After the end of the video' });
+      if (outside(c.atS) && !(k === 0 && c.atS === 0)) out.push({ path: `${i}.chapters.${k}.atS`, message: c.atS < from ? 'Before the part of the video that plays' : 'After the end of the video' });
     });
   });
   return out;

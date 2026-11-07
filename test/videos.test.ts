@@ -83,6 +83,11 @@ describe('publishing checks for videos', () => {
     expect(draftIssues(course([video({ pauses: [{ atS: 30, blockId: 'check-1' }], chapters: [{ atS: 0, title: 'A' }, { atS: 60, title: 'B' }] }), choice]))).toEqual([]);
   });
 
+  it('checks questions and chapters against the part of the video that plays', () => {
+    const issues = draftIssues(course([video({ startS: 30, endS: 60, durationS: 120, pauses: [{ atS: 90, blockId: 'check-1' }], chapters: [{ atS: 10, title: 'Too early' }] }), choice])).map((i) => i.message);
+    expect(issues).toEqual(['After the end of the video', 'Before the part of the video that plays']);
+  });
+
   it('finds questions that are missing, repeated or after the end, and chapters out of order', () => {
     const issues = draftIssues(
       course([
@@ -129,6 +134,15 @@ describe('captions', () => {
     const vtt = toVtt(cues);
     expect(vtt).toContain('01:02:05.500 --> 01:02:07.000\na &lt; b --&gt; c &amp; d');
     expect(parseCaptions(vtt)).toEqual(cues);
+  });
+
+  it('keeps literal entities, blank lines and tiny cues through a round trip', () => {
+    const vtt = toVtt([
+      { startS: 1, endS: 2, text: 'Type &lt; to mean less than' },
+      { startS: 3, endS: 4, text: 'First paragraph\n\nSecond paragraph' },
+      { startS: 5.0001, endS: 5.0004, text: 'Blink' },
+    ]);
+    expect(parseCaptions(vtt).map((c) => c.text)).toEqual(['Type &lt; to mean less than', 'First paragraph\nSecond paragraph', 'Blink']);
   });
 
   it('refuses cues that end before they start', () => {
