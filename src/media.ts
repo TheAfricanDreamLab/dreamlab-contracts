@@ -13,6 +13,22 @@ export const MediaPathSchema = z.string().regex(MEDIA_PATH_PATTERN, 'An uploaded
 
 export const COURSE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const COURSE_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;
+/** Files learners download from a lesson (download blocks). */
+export const COURSE_FILE_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.ms-excel',
+  'application/zip',
+  'text/plain',
+  'text/csv',
+  'image/jpeg',
+  'image/png',
+  'audio/mpeg',
+] as const;
 /** What learners may attach to an assignment. */
 export const SUBMISSION_FILE_TYPES = [
   'application/pdf',
@@ -30,6 +46,7 @@ export const SUBMISSION_FILE_TYPES = [
 
 export const MAX_COURSE_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_COURSE_VIDEO_BYTES = 500 * 1024 * 1024;
+export const MAX_COURSE_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024;
 export const MAX_SUBMISSION_FILES = 5;
 
@@ -43,15 +60,16 @@ const FileName = z
 
 export const CourseMediaUploadRequestSchema = z
   .object({
-    kind: z.enum(['image', 'video']),
+    kind: z.enum(['image', 'video', 'file']),
     fileName: FileName,
-    contentType: z.enum([...COURSE_IMAGE_TYPES, ...COURSE_VIDEO_TYPES]),
+    contentType: z.enum([...new Set([...COURSE_IMAGE_TYPES, ...COURSE_VIDEO_TYPES, ...COURSE_FILE_TYPES])] as [string, ...string[]]),
     size: z.number().int().min(1),
   })
   .superRefine((r, ctx) => {
-    const image = (COURSE_IMAGE_TYPES as readonly string[]).includes(r.contentType);
-    if ((r.kind === 'image') !== image) ctx.addIssue({ code: 'custom', path: ['contentType'], message: r.kind === 'image' ? 'A JPEG, PNG or WebP image' : 'An MP4 or WebM video' });
-    const max = r.kind === 'image' ? MAX_COURSE_IMAGE_BYTES : MAX_COURSE_VIDEO_BYTES;
+    const allowed: Record<typeof r.kind, readonly string[]> = { image: COURSE_IMAGE_TYPES, video: COURSE_VIDEO_TYPES, file: COURSE_FILE_TYPES };
+    const what = { image: 'A JPEG, PNG or WebP image', video: 'An MP4 or WebM video', file: 'A PDF, Word, PowerPoint, Excel, ZIP, text, CSV, picture or MP3 file' };
+    if (!allowed[r.kind].includes(r.contentType)) ctx.addIssue({ code: 'custom', path: ['contentType'], message: what[r.kind] });
+    const max = { image: MAX_COURSE_IMAGE_BYTES, video: MAX_COURSE_VIDEO_BYTES, file: MAX_COURSE_FILE_BYTES }[r.kind];
     if (r.size > max) ctx.addIssue({ code: 'custom', path: ['size'], message: `At most ${Math.round(max / 1024 / 1024)} MB` });
   });
 

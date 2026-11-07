@@ -7,6 +7,7 @@ import {
   CourseVisibilitySchema,
   CoverSchema,
   InstructorSchema,
+  ItemContentSchema,
   ItemTypeSchema,
   VideoRefSchema,
 } from './content';
@@ -49,6 +50,8 @@ export const OutlineItemSchema = z.object({
   title: z.string(),
   minutes: z.number().int(),
   required: z.boolean(),
+  /** Anyone may open it from the course page before enrolling (CAT-6). */
+  preview: z.boolean().default(false),
 });
 export const OutlineModuleSchema = z.object({
   id: UuidSchema,
@@ -59,6 +62,15 @@ export const OutlineModuleSchema = z.object({
   weekNo: z.number().int().nullable(),
   items: z.array(OutlineItemSchema),
 });
+
+/** A free-preview item, as a visitor sees it: answers removed, nothing checked or kept. */
+export const PreviewItemSchema = z.object({
+  course: z.object({ slug: z.string(), title: z.string() }),
+  module: z.object({ key: z.string(), title: z.string(), position: z.number().int() }),
+  item: z.object({ key: z.string(), type: ItemTypeSchema, title: z.string(), minutes: z.number().int() }),
+  content: ItemContentSchema,
+});
+export type PreviewItem = z.infer<typeof PreviewItemSchema>;
 
 export const CourseDetailSchema = CourseSummarySchema.extend({
   description: z.string(),
@@ -207,6 +219,13 @@ export const catalogContract = c.router(
       pathParams: z.object({ slug: CourseSlugSchema }),
       responses: { 200: CourseDetailSchema, ...errors },
       summary: 'A course page: description, outcomes and the full syllabus (no lesson content)',
+    },
+    previewItem: {
+      method: 'GET',
+      path: '/catalog/courses/:slug/preview/:itemKey',
+      pathParams: z.object({ slug: CourseSlugSchema, itemKey: z.string().regex(/^[a-z0-9][a-z0-9-]{0,47}$/) }),
+      responses: { 200: PreviewItemSchema, ...errors },
+      summary: 'A free-preview item of the published course, for anyone who can see the course',
     },
     listPrograms: {
       method: 'GET',

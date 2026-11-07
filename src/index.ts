@@ -10,6 +10,7 @@ export * from './learning';
 export * from './cohorts';
 export * from './grading';
 export * from './authoring';
+export * from './videos';
 export * from './platform';
 export * from './notifications';
 export * from './admissions';
@@ -19,4 +20,4 @@ export * from './community';
 export * from './instructors';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.20.0';
+export const CONTRACTS_VERSION = '0.21.0';
