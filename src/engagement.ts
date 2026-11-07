@@ -1,7 +1,7 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { CourseSlugSchema } from './catalog';
-import { CohortSchema, TimeSchema } from './cohorts';
+import { CohortSchema, DateSchema, TimeSchema } from './cohorts';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
 import { ItemTypeSchema } from './content';
 
@@ -144,11 +144,11 @@ export const EngagementRowSchema = z.object({
   name: z.string(),
   programEnrollmentId: UuidSchema,
   enrolledAt: TimestampSchema,
-  progressPct: z.number().int(),
-  expectedPct: z.number().int().nullable(),
+  progressPct: z.number().int().min(0).max(100),
+  expectedPct: z.number().int().min(0).max(100).nullable(),
   pace: PaceSchema,
   risk: RiskLevelSchema,
-  daysQuiet: z.number().int(),
+  daysQuiet: z.number().int().min(0),
   lastActiveAt: TimestampSchema.nullable(),
   attendancePct: z.number().int().nullable(),
   goalSet: z.boolean(),
@@ -198,7 +198,7 @@ export const CompletionFunnelSchema = z.object({
   }),
   checkIns: z.object({ sent: z.number().int(), returnedWithin7Days: z.number().int() }),
   /** Learners active each week, oldest first (at most 26 weeks). */
-  weekly: z.array(z.object({ weekStart: z.string(), active: z.number().int() })),
+  weekly: z.array(z.object({ weekStart: DateSchema, active: z.number().int() })),
 });
 export type CompletionFunnel = z.infer<typeof CompletionFunnelSchema>;
 
@@ -206,7 +206,7 @@ export type CompletionFunnel = z.infer<typeof CompletionFunnelSchema>;
 
 export const CircleProgressSchema = z.object({
   /** Monday of this week, in the cohort's time zone (YYYY-MM-DD). */
-  weekStart: z.string(),
+  weekStart: DateSchema,
   /** Whether the person asking shares their own progress with this circle. */
   sharing: z.boolean(),
   /** Members who share, the person asking included when they share. */
@@ -220,7 +220,7 @@ export const CircleProgressSchema = z.object({
       lastActiveAt: TimestampSchema.nullable(),
     }),
   ),
-  /** Members who don't share (names only, so nobody is singled out by a blank row). */
+  /** How many members don't share: a count only, so nobody is singled out by a blank row. */
   notSharing: z.number().int(),
 });
 export type CircleProgress = z.infer<typeof CircleProgressSchema>;
