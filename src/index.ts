@@ -20,4 +20,4 @@ export * from './community';
 export * from './instructors';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.21.0';
+export const CONTRACTS_VERSION = '0.22.0';
