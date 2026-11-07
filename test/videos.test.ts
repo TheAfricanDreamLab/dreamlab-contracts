@@ -83,8 +83,13 @@ describe('publishing checks for videos', () => {
     expect(draftIssues(course([video({ pauses: [{ atS: 30, blockId: 'check-1' }], chapters: [{ atS: 0, title: 'A' }, { atS: 60, title: 'B' }] }), choice]))).toEqual([]);
   });
 
+  it('needs the part that plays to be inside the video, starting before it stops', () => {
+    expect(draftIssues(course([video({ startS: 60, endS: 30 })])).map((i) => i.message)).toEqual(['Stop after the start']);
+    expect(draftIssues(course([video({ startS: 200, endS: 300 })])).map((i) => i.message)).toEqual(['After the end of the video', 'After the end of the video']);
+  });
+
   it('checks questions and chapters against the part of the video that plays', () => {
-    const issues = draftIssues(course([video({ startS: 30, endS: 60, durationS: 120, pauses: [{ atS: 90, blockId: 'check-1' }], chapters: [{ atS: 10, title: 'Too early' }] }), choice])).map((i) => i.message);
+    const issues = draftIssues(course([video({ startS: 30, endS: 60, durationS: 120, pauses: [{ atS: 90, blockId: 'check-1' }], chapters: [{ atS: 0, title: 'Too early' }] }), choice])).map((i) => i.message);
     expect(issues).toEqual(['After the end of the video', 'Before the part of the video that plays']);
   });
 

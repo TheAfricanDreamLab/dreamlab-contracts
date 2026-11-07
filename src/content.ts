@@ -565,6 +565,10 @@ export function videoStepProblems(blocks: readonly { id: string; type: string; [
     const from = typeof b.startS === 'number' ? b.startS : 0;
     const to = typeof b.endS === 'number' ? b.endS : duration;
     const outside = (at: number) => at < from || (to !== null && at >= to);
+    // The part that plays must exist: a start before the end, both inside the video.
+    if (typeof b.startS === 'number' && typeof b.endS === 'number' && b.startS >= b.endS) out.push({ path: `${i}.endS`, message: 'Stop after the start' });
+    if (duration !== null && typeof b.startS === 'number' && b.startS >= duration) out.push({ path: `${i}.startS`, message: 'After the end of the video' });
+    if (duration !== null && typeof b.endS === 'number' && b.endS > duration) out.push({ path: `${i}.endS`, message: 'After the end of the video' });
     const pauses = Array.isArray(b.pauses) ? (b.pauses as VideoPause[]) : [];
     pauses.forEach((p, k) => {
       const at = `${i}.pauses.${k}`;
@@ -577,7 +581,7 @@ export function videoStepProblems(blocks: readonly { id: string; type: string; [
     chapters.forEach((c, k) => {
       const prev = chapters[k - 1];
       if (prev && c.atS <= prev.atS) out.push({ path: `${i}.chapters.${k}.atS`, message: 'Chapters go in time order' });
-      if (outside(c.atS) && !(k === 0 && c.atS === 0)) out.push({ path: `${i}.chapters.${k}.atS`, message: c.atS < from ? 'Before the part of the video that plays' : 'After the end of the video' });
+      if (outside(c.atS)) out.push({ path: `${i}.chapters.${k}.atS`, message: c.atS < from ? 'Before the part of the video that plays' : 'After the end of the video' });
     });
   });
   return out;
