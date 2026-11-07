@@ -12,10 +12,34 @@ const errors = { 400: ErrorResponseSchema, 401: ErrorResponseSchema, 403: ErrorR
  * The catalog and learning services add their own admin routes (catalogContract, learningContract).
  */
 
-export const UserStatusSchema = z.enum(['active', 'suspended']);
+/**
+ * An account's standing (PLT-2). Suspended: kept out for a while (until a date, or until a platform
+ * admin lets them back in). Banned: closed for breaking the rules; only a platform admin can lift it.
+ * Either ends every session at once and stops sign-in.
+ */
+export const USER_STATUSES = ['active', 'suspended', 'banned'] as const;
+export const UserStatusSchema = z.enum(USER_STATUSES);
+export type UserStatus = z.infer<typeof UserStatusSchema>;
+
+/** The longest a suspension with an end date may run; longer means a ban or an open suspension. */
+export const MAX_SUSPENSION_DAYS = 365;
+
+/** The last change to someone's standing, for platform admins. */
+export const StatusChangeSchema = z.object({
+  status: UserStatusSchema,
+  /** Why, for the audit trail (platform admins only). */
+  reason: z.string(),
+  /** What the person was told, if anything. */
+  message: z.string().nullable(),
+  /** A suspension's end; null for an open suspension, a ban or a reinstatement. */
+  until: TimestampSchema.nullable(),
+  by: z.object({ userId: UuidSchema, name: z.string() }).nullable(),
+  at: TimestampSchema,
+});
+export type StatusChange = z.infer<typeof StatusChangeSchema>;
 
 export const PlatformOverviewSchema = z.object({
-  users: z.object({ total: z.number().int(), new7d: z.number().int(), suspended: z.number().int(), withMfa: z.number().int() }),
+  users: z.object({ total: z.number().int(), new7d: z.number().int(), suspended: z.number().int(), banned: z.number().int().default(0), withMfa: z.number().int() }),
   organizations: z.object({
     total: z.number().int(),
     pending: z.number().int(),
@@ -32,6 +56,8 @@ export const PlatformUserSchema = z.object({
   email: z.string().nullable(),
   phone: z.string().nullable(),
   status: UserStatusSchema,
+  /** When a suspension ends by itself; null when it doesn't (or the person isn't suspended). */
+  suspendedUntil: TimestampSchema.nullable().default(null),
   verified: z.boolean(),
   mfaEnabled: z.boolean(),
   platformAdmin: z.boolean(),
@@ -54,14 +80,42 @@ export const PlatformUserDetailSchema = PlatformUserSchema.extend({
     }),
   ),
   activeSessions: z.number().int(),
+  /** The latest suspension, ban or reinstatement, if any. */
+  statusChange: StatusChangeSchema.nullable().default(null),
 });
 export type PlatformUserDetail = z.infer<typeof PlatformUserDetailSchema>;
 
-export const SetUserStatusSchema = z.object({
-  status: UserStatusSchema,
-  /** Shown in the audit trail. */
-  reason: z.string().trim().min(3).max(500),
+export const SetUserStatusSchema = z
+  .object({
+    status: UserStatusSchema,
+    /** Why, for the audit trail; platform admins see it, the person doesn't. */
+    reason: z.string().trim().min(3).max(500),
+    /** Suspensions only: when it lifts by itself. Absent: until a platform admin lets them back in. */
+    until: TimestampSchema.optional(),
+    /** Told to the person by email and when they try to sign in (optional). */
+    message: z.string().trim().max(500).optional(),
+    /** Email the person about it (default yes). */
+    notify: z.boolean().default(true),
+  })
+  .superRefine((v, ctx) => {
+    if (v.until === undefined) return;
+    if (v.status !== 'suspended') ctx.addIssue({ code: 'custom', path: ['until'], message: 'Only a suspension can have an end date' });
+    const at = Date.parse(v.until);
+    if (!(at > Date.now())) ctx.addIssue({ code: 'custom', path: ['until'], message: 'The end must be in the future' });
+    if (at > Date.now() + MAX_SUSPENSION_DAYS * 86_400_000) ctx.addIssue({ code: 'custom', path: ['until'], message: `At most ${MAX_SUSPENSION_DAYS} days; longer is a ban or an open suspension` });
+  });
+export type SetUserStatus = z.infer<typeof SetUserStatusSchema>;
+
+/**
+ * What sign-in says to someone who is kept out: error codes `account_suspended` and `account_banned`
+ * carry these details (the older `account_disabled` remains for other cases).
+ */
+export const AccountBlockedSchema = z.object({
+  status: z.enum(['suspended', 'banned']),
+  until: TimestampSchema.nullable(),
+  message: z.string().nullable(),
 });
+export type AccountBlocked = z.infer<typeof AccountBlockedSchema>;
 
 export const platformContract = c.router(
   {
@@ -96,7 +150,7 @@ export const platformContract = c.router(
       pathParams: z.object({ userId: UuidSchema }),
       body: SetUserStatusSchema,
       responses: { 200: PlatformUserDetailSchema, 409: ErrorResponseSchema, ...errors },
-      summary: 'Suspend a person (ends every session at once) or reactivate them (platform admin)',
+      summary: 'Suspend a person (for a while or until let back in), ban them, or reinstate them; suspending or banning ends every session at once (platform admin)',
     },
   },
   { strictStatusCodes: true },
