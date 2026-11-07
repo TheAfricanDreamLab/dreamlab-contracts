@@ -2,7 +2,7 @@ import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { CourseSlugSchema } from './catalog';
 import { ErrorResponseSchema, TimestampSchema, UuidSchema } from './common';
-import { CourseAuthoringSchema, CourseVisibilitySchema, videoProblem } from './content';
+import { BlockIdSchema, CourseAuthoringSchema, CourseVisibilitySchema, VIDEO_PROVIDERS, videoProblem, videoStepProblems } from './content';
 import { CourseMediaUploadRequestSchema, CourseMediaUploadSchema } from './media';
 
 const c = initContract();
@@ -139,6 +139,73 @@ export const RequestChangesSchema = z.object({ note: z.string().trim().min(1).ma
 
 const DraftParams = z.object({ draftId: UuidSchema });
 
+// ---------- Review comments and who is here (CAT-6) ----------
+
+/**
+ * Where a comment points: the course details, a module, an item, or one block in an item. Keys and
+ * block ids, so a comment follows its block when things move. `label` is what to show
+ * ("Module 2 › Lesson “Why” › Video").
+ */
+export const CommentAnchorSchema = z
+  .object({
+    moduleKey: BlockIdSchema.nullable().default(null),
+    itemKey: BlockIdSchema.nullable().default(null),
+    blockId: BlockIdSchema.nullable().default(null),
+    label: z.string().trim().max(200).default(''),
+  })
+  .strict();
+export type CommentAnchor = z.infer<typeof CommentAnchorSchema>;
+
+export const DraftCommentSchema = z.object({
+  id: UuidSchema,
+  /** Replies point to the first comment of their thread. */
+  parentId: UuidSchema.nullable(),
+  anchor: CommentAnchorSchema,
+  body: z.string(),
+  author: Person,
+  mine: z.boolean(),
+  createdAt: TimestampSchema,
+  editedAt: TimestampSchema.nullable(),
+  resolvedAt: TimestampSchema.nullable(),
+  resolvedBy: Person,
+});
+export type DraftComment = z.infer<typeof DraftCommentSchema>;
+
+export const AddCommentSchema = z
+  .object({
+    anchor: CommentAnchorSchema,
+    body: z.string().trim().min(1).max(2000),
+    parentId: UuidSchema.optional(),
+  })
+  .strict();
+export const UpdateCommentSchema = z
+  .object({
+    body: z.string().trim().min(1).max(2000).optional(),
+    resolved: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => v.body !== undefined || v.resolved !== undefined, 'Change the text or resolve the thread');
+
+/** Someone with the draft open, and where they are. Seen within the last PRESENCE_SECONDS. */
+export const PRESENCE_SECONDS = 45;
+export const PresenceSchema = z.object({
+  userId: UuidSchema,
+  name: z.string(),
+  /** What they have open, e.g. "Module 1 › Lesson “Why”"; null on the course details. */
+  where: z.object({ moduleKey: z.string().nullable(), itemKey: z.string().nullable(), label: z.string() }).nullable(),
+  /** They changed something in the last PRESENCE_SECONDS (rather than only looking). */
+  editing: z.boolean(),
+  seenAt: TimestampSchema,
+});
+export type Presence = z.infer<typeof PresenceSchema>;
+export const HeartbeatSchema = z
+  .object({
+    where: z.object({ moduleKey: z.string().max(48).nullable(), itemKey: z.string().max(48).nullable(), label: z.string().max(200) }).nullable(),
+    editing: z.boolean().default(false),
+  })
+  .strict();
+const CommentParams = DraftParams.extend({ commentId: UuidSchema });
+
 export const authoringContract = c.router(
   {
     overview: {
@@ -231,6 +298,44 @@ export const authoringContract = c.router(
       responses: { 200: DraftSchema, ...errors },
       summary: 'Make an earlier save the newest one (authors; the current version stays in the history)',
     },
+    comments: {
+      method: 'GET',
+      path: '/catalog/authoring/drafts/:draftId/comments',
+      pathParams: DraftParams,
+      responses: { 200: z.object({ items: z.array(DraftCommentSchema) }), ...errors },
+      summary: 'Review comments on a draft, oldest first (whoever can open the draft)',
+    },
+    addComment: {
+      method: 'POST',
+      path: '/catalog/authoring/drafts/:draftId/comments',
+      pathParams: DraftParams,
+      body: AddCommentSchema,
+      responses: { 201: DraftCommentSchema, ...errors },
+      summary: 'Comment on the draft, a module, an item or a block, or reply to a comment',
+    },
+    updateComment: {
+      method: 'PATCH',
+      path: '/catalog/authoring/drafts/:draftId/comments/:commentId',
+      pathParams: CommentParams,
+      body: UpdateCommentSchema,
+      responses: { 200: DraftCommentSchema, ...errors },
+      summary: 'Edit your comment, or resolve or reopen a thread (anyone who can open the draft)',
+    },
+    removeComment: {
+      method: 'DELETE',
+      path: '/catalog/authoring/drafts/:draftId/comments/:commentId',
+      pathParams: CommentParams,
+      responses: { 204: c.noBody(), ...errors },
+      summary: 'Delete your comment (and, for the first comment, its replies)',
+    },
+    presence: {
+      method: 'POST',
+      path: '/catalog/authoring/drafts/:draftId/presence',
+      pathParams: DraftParams,
+      body: HeartbeatSchema,
+      responses: { 200: z.object({ people: z.array(PresenceSchema) }), ...errors },
+      summary: 'I have the draft open (send every 20 seconds); returns everyone else who has',
+    },
     remove: {
       method: 'DELETE',
       path: '/catalog/authoring/drafts/:draftId',
@@ -251,9 +356,13 @@ export function draftIssues(doc: unknown): DraftIssue[] {
     const visit = (value: unknown, path: (string | number)[]): void => {
       if (!value || typeof value !== 'object') return;
       const v = value as Record<string, unknown>;
-      if ((v.provider === 'youtube' || v.provider === 'file') && typeof v.videoId === 'string') {
-        const problem = videoProblem({ provider: v.provider, videoId: v.videoId });
+      if ((VIDEO_PROVIDERS as readonly unknown[]).includes(v.provider) && typeof v.videoId === 'string') {
+        const problem = videoProblem({ provider: v.provider as (typeof VIDEO_PROVIDERS)[number], videoId: v.videoId });
         if (problem) issues.push({ path: [...path, 'videoId'].join('.'), message: problem });
+      }
+      // A lesson step: questions asked during its videos, and their chapters.
+      if (Array.isArray(v.blocks) && path.at(-2) === 'steps') {
+        for (const p of videoStepProblems(v.blocks as { id: string; type: string }[])) issues.push({ path: [...path, 'blocks', p.path].join('.'), message: p.message });
       }
       for (const [k, child] of Object.entries(v)) visit(child, [...path, k]);
     };

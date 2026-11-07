@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UuidSchema } from './common';
 import { MEDIA_PATH_PATTERN, MediaPathSchema } from './media';
 
 /*
@@ -75,14 +76,26 @@ export const MediaImageUrlSchema = z
   }, `Images must be uploaded, or https and hosted on ${MEDIA_IMAGE_HOSTS.join(', ')}`);
 
 export const YouTubeIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/, 'An 11-character YouTube video id');
+export const VimeoIdSchema = z.string().regex(/^\d{6,12}$/, 'A Vimeo video number');
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * A video learners watch in place: on YouTube (played from youtube-nocookie.com only when tapped), or
- * an uploaded file, whose `videoId` is its media path. `videoProblem` checks the two agree.
+ * Where a video comes from:
+ *   - youtube / vimeo: played from youtube-nocookie.com or player.vimeo.com, only when tapped;
+ *   - library: the organisation's video library (CAT-6), streamed in the quality the connection
+ *     allows, with captions; `videoId` is the library video's id;
+ *   - file: an MP4 uploaded straight into the course before the library existed; `videoId` is its
+ *     media path. Still played, no longer offered for new videos.
  */
+export const VIDEO_PROVIDERS = ['youtube', 'vimeo', 'library', 'file'] as const;
+export const VideoProviderSchema = z.enum(VIDEO_PROVIDERS);
+export type VideoProvider = z.infer<typeof VideoProviderSchema>;
+
+/** A video learners watch in place. `videoProblem` checks the provider and id agree. */
 export const VideoRefSchema = z.object({
-  provider: z.enum(['youtube', 'file']),
-  videoId: z.union([YouTubeIdSchema, MediaPathSchema]),
+  provider: VideoProviderSchema,
+  videoId: z.union([YouTubeIdSchema, VimeoIdSchema, UuidSchema, MediaPathSchema]),
   title: z.string().min(1).max(200),
   /** Who made it: shown as the credit. */
   channel: z.string().min(1).max(120),
@@ -94,15 +107,40 @@ export type VideoRef = z.infer<typeof VideoRefSchema>;
 
 /** Why a video reference is unusable, or null. */
 export function videoProblem(v: Pick<VideoRef, 'provider' | 'videoId'>): string | null {
-  if (v.provider === 'youtube') return /^[A-Za-z0-9_-]{11}$/.test(v.videoId) ? null : 'An 11-character YouTube video id';
-  return MEDIA_PATH_PATTERN.test(v.videoId) ? null : 'Upload the video file';
+  switch (v.provider) {
+    case 'youtube':
+      return /^[A-Za-z0-9_-]{11}$/.test(v.videoId) ? null : 'Paste a YouTube link';
+    case 'vimeo':
+      return /^\d{6,12}$/.test(v.videoId) ? null : 'Paste a Vimeo link';
+    case 'library':
+      return UUID_PATTERN.test(v.videoId) ? null : 'Choose a video from the library';
+    case 'file':
+      return MEDIA_PATH_PATTERN.test(v.videoId) ? null : 'Upload the video file';
+  }
 }
+
+/** Longest video, in seconds (10 hours). */
+export const MAX_VIDEO_SECONDS = 36_000;
+
+/** A named point in a video learners can jump to. */
+export const VideoChapterSchema = z.object({ atS: z.number().int().min(0).max(MAX_VIDEO_SECONDS), title: z.string().trim().min(1).max(120) });
+export type VideoChapter = z.infer<typeof VideoChapterSchema>;
+
+/**
+ * A question asked during a video: the video pauses at `atS` and shows the interactive block
+ * `blockId` from the same step, checked by the server like any other. It no longer appears on its own
+ * in the step.
+ */
+export const VideoPauseSchema = z.object({ atS: z.number().int().min(1).max(MAX_VIDEO_SECONDS), blockId: z.string() });
+export type VideoPause = z.infer<typeof VideoPauseSchema>;
 
 const VideoBlock = VideoRefSchema.extend({
   id: BlockIdSchema,
   type: z.literal('video'),
   /** What to watch for. */
   caption: z.string().max(600).optional(),
+  chapters: z.array(VideoChapterSchema).max(50).optional(),
+  pauses: z.array(VideoPauseSchema).max(20).optional(),
 });
 const ImageBlock = z.object({
   id: BlockIdSchema,
@@ -114,7 +152,20 @@ const ImageBlock = z.object({
   credit: z.string().min(1).max(200),
 });
 
-const teachingBlocks = [TextBlock, CalloutBlock, QuoteBlock, ExampleBlock, KeyTermsBlock, RevealBlock, FrameworkBlock, VideoBlock, ImageBlock] as const;
+/** A file learners download: a worksheet, slides, a template or a reading. */
+const DownloadBlock = z.object({
+  id: BlockIdSchema,
+  type: z.literal('download'),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().max(400).optional(),
+  /** Where the uploaded file is, relative to /media. */
+  path: MediaPathSchema,
+  fileName: z.string().min(1).max(160),
+  size: z.number().int().min(1),
+  contentType: z.string().max(120),
+});
+
+const teachingBlocks = [TextBlock, CalloutBlock, QuoteBlock, ExampleBlock, KeyTermsBlock, RevealBlock, FrameworkBlock, VideoBlock, ImageBlock, DownloadBlock] as const;
 
 // ---------- Interactive blocks: authoring form ----------
 
@@ -330,11 +381,21 @@ const DiscussionPayload = z.object({
   minWords: z.number().int().min(0).max(1000).default(40),
 });
 
+/**
+ * Every item: `preview` lets people who haven't enrolled open it from the course page (CAT-6), to
+ * decide whether to enrol. Their answers to questions in it are not checked or kept.
+ */
+const itemBase = {
+  key: BlockIdSchema,
+  title: z.string().max(160),
+  required: z.boolean().default(true),
+  preview: z.boolean().default(false),
+};
 export const ItemAuthoringSchema = z.discriminatedUnion('type', [
-  z.object({ key: BlockIdSchema, type: z.literal('lesson'), title: z.string().max(160), minutes: z.number().int().min(1).max(240), required: z.boolean().default(true), payload: LessonPayloadAuthoring }),
-  z.object({ key: BlockIdSchema, type: z.literal('quiz'), title: z.string().max(160), minutes: z.number().int().min(1).max(240), required: z.boolean().default(true), gradeWeight: z.number().min(0).max(100).default(0), payload: QuizPayloadAuthoring }),
-  z.object({ key: BlockIdSchema, type: z.literal('assignment'), title: z.string().max(160), minutes: z.number().int().min(1).max(600), required: z.boolean().default(true), gradeWeight: z.number().min(0).max(100).default(0), payload: AssignmentPayload }),
-  z.object({ key: BlockIdSchema, type: z.literal('discussion'), title: z.string().max(160), minutes: z.number().int().min(1).max(240), required: z.boolean().default(true), payload: DiscussionPayload }),
+  z.object({ ...itemBase, type: z.literal('lesson'), minutes: z.number().int().min(1).max(240), payload: LessonPayloadAuthoring }),
+  z.object({ ...itemBase, type: z.literal('quiz'), minutes: z.number().int().min(1).max(240), gradeWeight: z.number().min(0).max(100).default(0), payload: QuizPayloadAuthoring }),
+  z.object({ ...itemBase, type: z.literal('assignment'), minutes: z.number().int().min(1).max(600), gradeWeight: z.number().min(0).max(100).default(0), payload: AssignmentPayload }),
+  z.object({ ...itemBase, type: z.literal('discussion'), minutes: z.number().int().min(1).max(240), payload: DiscussionPayload }),
 ]);
 export type ItemAuthoring = z.infer<typeof ItemAuthoringSchema>;
 
@@ -485,4 +546,34 @@ export function toDeliveryContent(item: ItemAuthoring, seed: string): ItemConten
     case 'discussion':
       return { type: 'discussion', ...item.payload };
   }
+}
+
+/**
+ * Problems in a lesson's videos that the schema alone can't see: questions during a video must be
+ * interactive blocks of the same step, used once, inside the video; chapters in time order.
+ * Paths are relative to the step's blocks (e.g. "2.pauses.0.blockId").
+ */
+export function videoStepProblems(blocks: readonly { id: string; type: string; [k: string]: unknown }[]): { path: string; message: string }[] {
+  const out: { path: string; message: string }[] = [];
+  const interactive = new Set(blocks.filter((b) => isInteractiveBlock(b)).map((b) => b.id));
+  const used = new Set<string>();
+  blocks.forEach((b, i) => {
+    if (b.type !== 'video') return;
+    const duration = typeof b.durationS === 'number' ? b.durationS : null;
+    const pauses = Array.isArray(b.pauses) ? (b.pauses as VideoPause[]) : [];
+    pauses.forEach((p, k) => {
+      const at = `${i}.pauses.${k}`;
+      if (!interactive.has(p.blockId)) out.push({ path: `${at}.blockId`, message: 'Choose a question from this step' });
+      else if (used.has(p.blockId)) out.push({ path: `${at}.blockId`, message: 'This question is already asked during a video' });
+      used.add(p.blockId);
+      if (duration !== null && p.atS >= duration) out.push({ path: `${at}.atS`, message: 'After the end of the video' });
+    });
+    const chapters = Array.isArray(b.chapters) ? (b.chapters as VideoChapter[]) : [];
+    chapters.forEach((c, k) => {
+      const prev = chapters[k - 1];
+      if (prev && c.atS <= prev.atS) out.push({ path: `${i}.chapters.${k}.atS`, message: 'Chapters go in time order' });
+      if (duration !== null && c.atS >= duration) out.push({ path: `${i}.chapters.${k}.atS`, message: 'After the end of the video' });
+    });
+  });
+  return out;
 }

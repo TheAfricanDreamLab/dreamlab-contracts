@@ -10,6 +10,7 @@ import {
   structureContract,
 } from './directory';
 import { authoringContract } from './authoring';
+import { videosContract } from './videos';
 import { catalogContract } from './catalog';
 import { cohortsContract } from './cohorts';
 import { enterpriseContract } from './enterprise';
@@ -56,6 +57,7 @@ export const structureV1 = c.router(structureContract, V1);
 export const enterpriseV1 = c.router(enterpriseContract, V1);
 export const platformV1 = c.router(platformContract, V1);
 export const catalogV1 = c.router(catalogContract, V1);
+export const videosV1 = c.router(videosContract, V1);
 export const learningV1 = c.router(learningContract, V1);
 export const cohortsV1 = c.router(cohortsContract, V1);
 export const gradingV1 = c.router(gradingContract, V1);
@@ -83,6 +85,7 @@ export const apiV1Contract: {
   cohorts: typeof cohortsV1;
   grading: typeof gradingV1;
   authoring: typeof authoringV1;
+  videos: typeof videosV1;
   notifications: typeof notificationsV1;
   admissions: typeof admissionsV1;
   community: typeof communityV1;
@@ -104,6 +107,7 @@ export const apiV1Contract: {
   cohorts: cohortsV1,
   grading: gradingV1,
   authoring: authoringV1,
+  videos: videosV1,
   notifications: notificationsV1,
   admissions: admissionsV1,
   community: communityV1,
