@@ -103,7 +103,7 @@ describe('publishing checks for videos', () => {
 describe('free previews', () => {
   it('defaults items and outline entries to not previewable', () => {
     const item = ItemAuthoringSchema.parse({ key: 'l1', type: 'discussion', title: 'D', minutes: 5, payload: { prompt: 'P' } });
-    expect(item.preview).toBe(false);
+    expect(item.preview ?? false).toBe(false);
     expect(OutlineItemSchema.parse({ id: LIB, key: 'l1', type: 'lesson', title: 'L', minutes: 5, required: true }).preview).toBe(false);
   });
 });

@@ -389,7 +389,8 @@ const itemBase = {
   key: BlockIdSchema,
   title: z.string().max(160),
   required: z.boolean().default(true),
-  preview: z.boolean().default(false),
+  /** Absent means no. */
+  preview: z.boolean().optional(),
 };
 export const ItemAuthoringSchema = z.discriminatedUnion('type', [
   z.object({ ...itemBase, type: z.literal('lesson'), minutes: z.number().int().min(1).max(240), payload: LessonPayloadAuthoring }),
