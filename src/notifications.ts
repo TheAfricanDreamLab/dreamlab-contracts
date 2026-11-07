@@ -17,7 +17,7 @@ const errors = {
  * service resolves recipients, stores one row per person and sends the email.
  */
 
-export const NOTIFICATION_CATEGORIES = ['grades', 'submissions', 'sessions', 'cohorts', 'authoring', 'admissions', 'community', 'circles', 'account'] as const;
+export const NOTIFICATION_CATEGORIES = ['grades', 'submissions', 'sessions', 'cohorts', 'authoring', 'admissions', 'community', 'circles', 'progress', 'account'] as const;
 export const NotificationCategorySchema = z.enum(NOTIFICATION_CATEGORIES);
 export type NotificationCategory = z.infer<typeof NotificationCategorySchema>;
 
@@ -30,6 +30,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory, string> 
   admissions: 'Applications and admissions',
   community: 'Mentorship and learning circles',
   circles: 'My Dream Circles: posts, replies, calls and meetups',
+  progress: 'Reminders and check-ins to keep my learning on track',
   account: 'My account',
 };
 

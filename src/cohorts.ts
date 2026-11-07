@@ -84,6 +84,8 @@ export const CalendarWeekSchema = z.object({
   phase: z.string(),
   focus: z.string(),
   majorOutput: z.string(),
+  /** A catch-up week has no new lessons (LRN-9). */
+  kind: z.enum(['learning', 'catch_up']).default('learning'),
 });
 export type CalendarWeek = z.infer<typeof CalendarWeekSchema>;
 

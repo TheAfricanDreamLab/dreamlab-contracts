@@ -18,6 +18,7 @@ export * from './assigned';
 export * from './outcomes';
 export * from './community';
 export * from './instructors';
+export * from './engagement';
 export * from './contract';
 
-export const CONTRACTS_VERSION = '0.22.0';
+export const CONTRACTS_VERSION = '0.23.0';
