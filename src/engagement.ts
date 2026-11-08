@@ -22,7 +22,7 @@ const errors = {
  *   to them, in reminders too.
  * - Pace: how far along they are against where the cohort's calendar expects them to be, and a short
  *   catch-up list (the next essential items) instead of a wall of overdue work.
- * - Reminders by email (notification category `progress`) after a few quiet days, at most one a week.
+ * - Reminders by email (notification category `progress`) after a few quiet days, at most one every 3 days.
  * - For cohort staff: who is at risk, a personal check-in, and the completion funnel.
  * - Dream Circle members can choose to share their week's progress with their circle.
  */
