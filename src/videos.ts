@@ -202,6 +202,12 @@ export const VideoManifestSchema = z.object({
   poster: z.string(),
   thumbnail: z.string(),
   captions: z.array(z.object({ lang: z.string(), label: z.string(), src: z.string(), auto: z.boolean() })),
+  /**
+   * Low-data viewing (LRN-9): each stream's size, so the player can say what a lesson costs in data, and
+   * an audio-only version (AAC, about 64 kbps). Absent on videos processed before they existed.
+   */
+  renditions: z.array(z.object({ height: z.number().int(), bytes: z.number().int() })).optional(),
+  audio: z.object({ src: z.string(), bytes: z.number().int() }).optional(),
 });
 export type VideoManifest = z.infer<typeof VideoManifestSchema>;
 

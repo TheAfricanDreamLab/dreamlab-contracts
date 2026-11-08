@@ -22,6 +22,7 @@ import { assignedLearningContract } from './assigned';
 import { outcomesContract } from './outcomes';
 import { communityContract } from './community';
 import { instructorsContract } from './instructors';
+import { engagementContract } from './engagement';
 import { platformContract } from './platform';
 
 const c = initContract();
@@ -68,6 +69,7 @@ export const communityV1 = c.router(communityContract, V1);
 export const instructorsV1 = c.router(instructorsContract, V1);
 export const outcomesV1 = c.router(outcomesContract, V1);
 export const assignedLearningV1 = c.router(assignedLearningContract, V1);
+export const engagementV1 = c.router(engagementContract, V1);
 
 /** Versioned public API, served by the gateway under /v1. */
 export const apiV1Contract: {
@@ -92,6 +94,7 @@ export const apiV1Contract: {
   instructors: typeof instructorsV1;
   outcomes: typeof outcomesV1;
   assignedLearning: typeof assignedLearningV1;
+  engagement: typeof engagementV1;
 } = {
   auth: authV1,
   me: meV1,
@@ -114,6 +117,7 @@ export const apiV1Contract: {
   instructors: instructorsV1,
   outcomes: outcomesV1,
   assignedLearning: assignedLearningV1,
+  engagement: engagementV1,
 };
 
 /** Everything the gateway serves: the versioned API plus unversioned endpoints. */

@@ -137,9 +137,17 @@ export const ProgramDetailSchema = ProgramSummarySchema.extend({
   ),
   capstoneStages: z.array(z.object({ position: z.number().int(), name: z.string(), outputDocument: z.string(), creditHours: z.number(), summary: z.string() })),
   graduationRequirements: z.array(z.object({ position: z.number().int(), key: z.string(), label: z.string() })),
-  calendar: z.array(z.object({ weekNo: z.number().int(), phase: z.string(), focus: z.string(), majorOutput: z.string() })),
+  calendar: z.array(z.object({ weekNo: z.number().int(), phase: z.string(), focus: z.string(), majorOutput: z.string(), kind: z.enum(['learning', 'catch_up']).default('learning') })),
 });
 export type ProgramDetail = z.infer<typeof ProgramDetailSchema>;
+
+/**
+ * A learning week, or a catch-up week: no new lessons, time to get level (LRN-9). Programmes that don't
+ * say are all learning weeks.
+ */
+export const CALENDAR_WEEK_KINDS = ['learning', 'catch_up'] as const;
+export const CalendarWeekKindSchema = z.enum(CALENDAR_WEEK_KINDS);
+export type CalendarWeekKind = z.infer<typeof CalendarWeekKindSchema>;
 
 /** A programme as a seed defines it; courses are referenced by slug. */
 export const ProgramAuthoringSchema = z.object({
@@ -166,7 +174,7 @@ export const ProgramAuthoringSchema = z.object({
   ),
   capstoneStages: z.array(z.object({ name: z.string(), outputDocument: z.string(), creditHours: z.number(), summary: z.string() })),
   graduationRequirements: z.array(z.object({ key: z.string(), label: z.string() })),
-  calendar: z.array(z.object({ weekNo: z.number().int(), phase: z.string(), focus: z.string(), majorOutput: z.string() })),
+  calendar: z.array(z.object({ weekNo: z.number().int(), phase: z.string(), focus: z.string(), majorOutput: z.string(), kind: CalendarWeekKindSchema.default('learning') })),
 });
 export type ProgramAuthoring = z.infer<typeof ProgramAuthoringSchema>;
 
